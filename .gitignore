@@ -1,0 +1,33 @@
+# Security & Environment
+.env
+.env.*
+.gemini/
+.vscode/
+.idea/
+.DS_Store
+
+# Core Platform Modules (Excluded as requested)
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Clinical Data (Strict Exclusion for Privacy)
+data/
+models/*.pkl
+models/reports/
+*.csv
+*.xlsx
+*.json
+
+# Large Assets & Logs
+*.zip
+*.ppt
+*.pptx
+*.pdf
+*.log
+npm-debug.log*
+
+# Frontend Build
+frontend/dist/
+frontend/.vite
