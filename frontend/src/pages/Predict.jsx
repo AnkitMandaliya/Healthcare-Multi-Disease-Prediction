@@ -44,6 +44,7 @@ const diseases = [
     icon: Activity, 
     color: '#2463EB',
     fields: [
+      { name: 'Gender', label: 'Gender Identification', type: 'select', options: [{label: 'Male', value: 'M'}, {label: 'Female', value: 'F'}] },
       { name: 'Pregnancies', label: 'Pregnancies', type: 'number', placeholder: 'e.g. 2', step: 1 },
       { name: 'Glucose', label: 'Glucose Level', type: 'number', placeholder: 'e.g. 120' },
       { name: 'BloodPressure', label: 'Blood Pressure', type: 'number', placeholder: 'e.g. 80' },
@@ -122,7 +123,10 @@ const Predict = () => {
   const formRef = useRef(null);
 
   useEffect(() => {
-
+    console.log("Diagnostic Hub Active: Session #AI-INIT-99");
+    if (!diseases || diseases.length === 0) {
+       console.error("Critical: Neural disease registry empty or corrupted.");
+    }
   }, []);
 
   const handleInputChange = (e) => {
@@ -141,6 +145,9 @@ const Predict = () => {
     if (currentStep === 1 && selectedDisease) {
       const newErrors = {};
       selectedDisease.fields.forEach(field => {
+        // Clinical Bypass for Pregnancy Logic
+        if (selectedDisease.id === 'diabetes' && field.name === 'Pregnancies' && formData.Gender === 'M') return;
+        
         const val = formData[field.name];
         if (!val && val !== 0) {
           newErrors[field.name] = 'Clinical requirement missing';
@@ -243,6 +250,7 @@ const Predict = () => {
   };
 
 
+  if (!user) return <div className="h-screen w-full flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest bg-[#F6F6F8] dark:bg-[#111621]">Unauthorized Access Node... Returning to HQ.</div>;
 
   return (
     <div className="max-w-3xl mx-auto w-full px-4 py-8 font-sans scroll-smooth">
@@ -312,7 +320,7 @@ const Predict = () => {
                     </div>
                     <div className="text-center">
                       <h4 className="font-bold dark:text-white text-lg">{d.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Verified v3.0</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Verified v1.0</p>
                     </div>
                   </button>
                 ))}
@@ -356,7 +364,10 @@ const Predict = () => {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                 {selectedDisease.fields.map((field) => (
+                 {selectedDisease.fields.map((field) => {
+                    // Clinical logic to hide Pregnancy for Males
+                    if (selectedDisease.id === 'diabetes' && field.name === 'Pregnancies' && formData.Gender === 'M') return null;
+                    return (
                     <div key={field.name} className="space-y-2">
                        <label className="text-xs font-bold flex items-center gap-2 text-slate-700 dark:text-slate-300">
                           {field.name.toLowerCase().includes('age') ? <Calendar size={14} className="text-primary" /> : field.name.toLowerCase().includes('gender') || field.name.toLowerCase().includes('sex') ? <Users size={14} className="text-primary" /> : <Stethoscope size={14} className="text-primary" />}
@@ -390,7 +401,8 @@ const Predict = () => {
                        )}
                        {errors[field.name] && <p className="text-[10px] text-red-500 font-black uppercase tracking-widest pl-1 mt-1 animate-pulse">{errors[field.name]}</p>}
                     </div>
-                 ))}
+                    )
+                  })}
               </div>
 
               <div className="flex gap-4 pt-10 border-t border-slate-100 dark:border-slate-800">
@@ -582,17 +594,24 @@ const Predict = () => {
                 )}
               </div>
 
-              <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex flex-col items-center gap-4">
-                 {!loadingAdvice && adviceLevel === 'flash' && (
-                    <div className="flex gap-3">
+              <div className="p-8 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center gap-6">
+                 <div className="flex w-full gap-4">
+                    {!loadingAdvice && adviceLevel === 'flash' && (
                        <button 
                          onClick={() => getClinicalAdvice(true)}
-                         className="px-6 py-2 rounded-full border-2 border-primary text-primary text-[10px] font-bold uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg shadow-primary/10"
+                         className="flex-1 py-4 rounded-2xl bg-primary text-white text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-primary/20"
                        >
                          Explore Detailed Roadmap
                        </button>
-                    </div>
-                 )}
+                    )}
+                    <button 
+                      onClick={() => setShowAIModal(false)}
+                      className="flex-1 py-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                    >
+                      Dismiss Advisory
+                    </button>
+                 </div>
+                 
                  <div className="flex justify-center text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">
                    <ShieldCheck size={14} className="text-emerald-500 mr-2" /> Powered by Google Gemini AI
                  </div>

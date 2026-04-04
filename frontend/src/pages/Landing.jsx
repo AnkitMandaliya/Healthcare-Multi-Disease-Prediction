@@ -74,7 +74,7 @@ const Landing = () => {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary"></span>
               </span>
-              <span className="text-xs font-semibold tracking-wide text-primary uppercase">v2.0 Pulse Engine Active</span>
+              <span className="text-xs font-semibold tracking-wide text-primary uppercase">v1.0 Pulse Engine Active</span>
             </motion.div>
             
             <motion.h1 

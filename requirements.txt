@@ -10,7 +10,7 @@ scikit-learn
 joblib
 shap
 xgboost
-google-generativeai
+google-genai
 python-dotenv
 waitress
 pyotp

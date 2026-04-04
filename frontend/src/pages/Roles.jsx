@@ -33,7 +33,7 @@ const Roles = () => {
   const fetchRoles = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/roles', {
+      const res = await fetch('/api/roles', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -61,7 +61,7 @@ const Roles = () => {
     if (!formData.name) return;
     
     const isEdit = !!editingRole;
-    const url = isEdit ? `http://127.0.0.1:5000/api/roles/${editingRole.name}` : `http://127.0.0.1:5000/api/roles`;
+    const url = isEdit ? `/api/roles/${editingRole.name}` : `/api/roles`;
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
@@ -90,7 +90,7 @@ const Roles = () => {
   const handleDelete = async (roleName) => {
      if (!window.confirm(`Are you sure you want to permanently delete the ${roleName} role and downgrade associated users to patient?`)) return;
      try {
-        const res = await fetch(`http://127.0.0.1:5000/api/roles/${roleName}`, {
+        const res = await fetch(`/api/roles/${roleName}`, {
            method: 'DELETE',
            headers: { 'Authorization': `Bearer ${token}` }
         });

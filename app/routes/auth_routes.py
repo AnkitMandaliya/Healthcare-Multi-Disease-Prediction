@@ -19,15 +19,20 @@ def register():
     password = data.get("password")
     role = data.get("role", "clinician")
     
-    if not name or not email or not password:
-        return jsonify({"error": "Full authentication credentials required (Name, Email, Password)"}), 400
+    # Requirement change: Either email or phone is required
+    if not name or not password or (not email and not phone):
+        return jsonify({"error": "Full authentication credentials required (Name, Email or Phone, and Password)"}), 400
         
     if len(password) < 6:
         return jsonify({"error": "Encryption passkey must be at least 6 characters"}), 400
 
     # Ensure unique identifiers in registry
-    if mongo.db.users.find_one({"$or": [{"email": email}, {"phone": phone} if phone else {"email": "NON_EXISTENT_PLACEHOLDER"}]}):
-        return jsonify({"error": "Identifier (Email or Phone) already active in registry"}), 400
+    query_parts = []
+    if email: query_parts.append({"email": email})
+    if phone: query_parts.append({"phone": phone})
+    
+    if mongo.db.users.find_one({"$or": query_parts}):
+        return jsonify({"error": "Clinical identifier (Email or Phone) already active in registry"}), 400
         
     hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
     mongo.db.users.insert_one({
@@ -36,7 +41,15 @@ def register():
         "phone": phone,
         "password": hashed_pw,
         "role": role,
-        "avatar": f"https://i.pravatar.cc/150?u={email}"
+        "avatar": f"https://i.pravatar.cc/150?u={email or phone}"
+    })
+    
+    # Notify Admin
+    mongo.db.notifications.insert_one({
+        "title": "New Node Registered",
+        "message": f"Clinical node '{name}' ({role}) has joined the network.",
+        "type": "info",
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
     
     return jsonify({"message": "Node Registration Successful", "status": "success"}), 201
@@ -44,48 +57,90 @@ def register():
 @auth_bp.route("/api/login", methods=["POST"])
 def login():
     data = request.json
-    email = data.get("email", "").lower().strip()
+    identifier = data.get("email", "").strip() # This can be email or phone
     password = data.get("password")
     
-    if not email or not password:
-        return jsonify({"error": "Credentials missing"}), 400
+    if not identifier or not password:
+        return jsonify({"error": "Clinical credentials missing"}), 400
 
-    user = mongo.db.users.find_one({"email": email})
+    # Search by email or phone
+    user = mongo.db.users.find_one({"$or": [{"email": identifier.lower()}, {"phone": identifier}]})
     
     password_valid = False
     if user:
         try:
             password_valid = bcrypt.check_password_hash(user["password"], password)
         except ValueError:
-            # Handle invalid salts from manual DB edits or malformed hashes
             password_valid = False
             
     if user and password_valid:
-        # Fetch permissions based on role
-        role_data = mongo.db.roles.find_one({"name": user["role"]})
-        permissions = role_data.get("permissions", []) if role_data else []
-        
-        access_token = create_access_token(
-            identity=str(user["_id"]),
-            additional_claims={
-                "role": user["role"],
-                "name": user["name"],
-                "permissions": permissions
-            }
-        )
-        
+        # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
+        success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
+        if not success:
+            return jsonify({"error": msg}), 500
+            
         return jsonify({
-            "access_token": access_token,
-            "user": {
-                "email": user["email"],
-                "name": user["name"],
-                "role": user["role"],
-                "permissions": permissions,
-                "avatar": user.get("avatar", f"https://i.pravatar.cc/150?u={email.lower()}")
-            }
+            "otp_required": True,
+            "uid": str(user["_id"]),
+            "sent_to": msg, # Obfuscated destination info
+            "message": "Security token dispatched to your registered identifier"
         }), 200
         
     return jsonify({"error": "Secure credentials mismatch or account not found"}), 401
+
+@auth_bp.route("/api/login-verify", methods=["POST"])
+def login_verify():
+    data = request.json
+    uid = data.get("uid")
+    otp = str(data.get("otp", "")).strip()
+    
+    if not uid or not otp:
+        return jsonify({"error": "Verification parameters missing"}), 400
+        
+    from bson.objectid import ObjectId
+    user = mongo.db.users.find_one({"_id": ObjectId(uid)})
+    if not user:
+        return jsonify({"error": "Node identity lost"}), 404
+        
+    # Standard OTP check - Synchronized to UID anchor
+    otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
+    if not otp_record or str(otp_record["otp"]) != otp:
+        return jsonify({"error": "Invalid security token"}), 401
+    
+    # Expiry check
+    now = datetime.now(timezone.utc)
+    expiry = otp_record["expiry"]
+    if expiry.tzinfo is None: expiry = expiry.replace(tzinfo=timezone.utc)
+    
+    if now > expiry:
+        return jsonify({"error": "Security token expired"}), 401
+        
+    # Clear OTP after success
+    mongo.db.otps.delete_one({"uid": str(user["_id"])})
+    
+    # Issue JWT
+    role_data = mongo.db.roles.find_one({"name": user["role"]})
+    permissions = role_data.get("permissions", []) if role_data else []
+    
+    access_token = create_access_token(
+        identity=str(user["_id"]),
+        additional_claims={
+            "role": user["role"],
+            "name": user["name"],
+            "permissions": permissions
+        }
+    )
+    
+    return jsonify({
+        "access_token": access_token,
+        "user": {
+            "email": user["email"],
+            "name": user["name"],
+            "role": user["role"],
+            "permissions": permissions,
+            "avatar": user.get("avatar", f"https://i.pravatar.cc/150?u={user['email'].lower() if user['email'] else user['name']}")
+        }
+    }), 200
 
 @auth_bp.route("/api/available-roles", methods=["GET"])
 def available_roles():
@@ -107,6 +162,88 @@ from flask_mail import Message
 from twilio.rest import Client
 
 logger = logging.getLogger(__name__)
+
+def dispatch_otp(user, preferred_channel=None):
+    from app.extensions import mongo, mail
+    now = datetime.now(timezone.utc)
+    
+    # Generate OTP
+    secret = pyotp.random_base32()
+    totp = pyotp.TOTP(secret, interval=600)
+    otp = totp.now()
+    expiry = now + timedelta(minutes=10)
+    
+    # Store in DB (Linked to the unique account ID)
+    mongo.db.otps.update_one(
+        {"uid": str(user["_id"])},
+        {"$set": {
+            "otp": otp, 
+            "otp_secret": secret, 
+            "expiry": expiry,
+            "last_requested": now,
+            "attempt_count": 0
+        }},
+        upsert=True
+    )
+    
+    # Dispatch Logic: Follow preferred channel, else fallback across clinical vectors
+    try:
+        # Determine target: detect if preferred_channel is a mobile identifier (contains 10+ digits)
+        clean_pref = preferred_channel.replace(" ", "").replace("+", "") if preferred_channel else ""
+        is_phone_used = preferred_channel and clean_pref.isdigit() and len(clean_pref) >= 10
+        is_email_used = preferred_channel and "@" in preferred_channel
+        
+        # Priority 1: Preferred Phone Channel (SMS)
+        if is_phone_used and user.get("phone"):
+            account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+            auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+            twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+            if account_sid and auth_token and twilio_phone:
+                client = Client(account_sid, auth_token)
+                client.messages.create(
+                    body=f"HealthAI Login OTP: {otp}. Valid for 10 min.",
+                    from_=twilio_phone,
+                    to=user["phone"]
+                )
+                return True, f"SMS node: ***{user['phone'][-4:]}", otp
+
+        # Priority 2: Preferred Email Channel (SMTP)
+        if is_email_used and user.get("email"):
+            msg = Message(
+                subject="HealthAI: Clinical Authentication Token",
+                recipients=[user["email"]],
+                body=f"SECURITY ALERT: Verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
+            )
+            mail.send(msg)
+            return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
+
+        # Final Fallback: Send to whatever primary communication vector the node has
+        if user.get("email"):
+            msg = Message(
+                subject="HealthAI: Clinical Authentication Fallback",
+                recipients=[user["email"]],
+                body=f"SECURITY ALERT: Fallback verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
+            )
+            mail.send(msg)
+            return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
+        elif user.get("phone"):
+            # SMS logic again (Fallback)
+            account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+            auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+            twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+            if account_sid and auth_token and twilio_phone:
+                client = Client(account_sid, auth_token)
+                client.messages.create(
+                    body=f"HealthAI Login OTP: {otp}. Valid for 10 min.",
+                    from_=twilio_phone,
+                    to=user["phone"]
+                )
+                return True, f"SMS node: ***{user['phone'][-4:]}", otp
+
+        return False, "No valid communication vector found", None
+    except Exception as e:
+        logger.error(f"[OTP-DISPATCH-ERROR] {str(e)}")
+        return False, "Neural transmission failure", None
 
 def validate_input(email, phone):
     if email and not re.match(r"[^@]+@[^@]+\.[^@]+", email):
@@ -145,7 +282,7 @@ def forgot_password():
     now = datetime.now(timezone.utc)
     
     # Rate Limiting (1 OTP per 60s)
-    existing_otp = mongo.db.otps.find_one({"email": canonical_email})
+    existing_otp = mongo.db.otps.find_one({"uid": str(user["_id"])})
     if existing_otp and existing_otp.get("last_requested"):
         last_req = existing_otp["last_requested"]
         if last_req.tzinfo is None:
@@ -159,9 +296,9 @@ def forgot_password():
     otp = totp.now()
     expiry = now + timedelta(minutes=10)
     
-    # Store in DB (maintaining compatibility with existing verify_otp layout)
+    # Store in DB (Linked to the unique account ID)
     mongo.db.otps.update_one(
-        {"email": canonical_email},
+        {"uid": str(user["_id"])},
         {"$set": {
             "otp": otp, 
             "otp_secret": secret, 
@@ -235,7 +372,7 @@ def verify_otp():
     if not user:
         return jsonify({"error": "No clinical identifier matched"}), 404
         
-    otp_record = mongo.db.otps.find_one({"email": user["email"].lower()})
+    otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
     
     if not otp_record:
         return jsonify({"error": "No active recovery protocol found"}), 404

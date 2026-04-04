@@ -8,14 +8,21 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  base: '/',
   server: {
     port: 5173,
+    host: '0.0.0.0', // Ensure address binding for Windows networking
     strictPort: true,
+    allowedHosts: ['.trycloudflare.com'],
     proxy: {
       '/predict_diabetes': 'http://127.0.0.1:5000',
       '/predict_heart': 'http://127.0.0.1:5000',
       '/predict_lung': 'http://127.0.0.1:5000',
-      '/api': 'http://127.0.0.1:5000',
+      '/api': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+      }
     }
   }
 })

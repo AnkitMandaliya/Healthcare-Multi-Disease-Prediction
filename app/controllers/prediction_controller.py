@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
-import google.generativeai as genai
+from google import genai
 from flask import jsonify
 from datetime import datetime
 from src.preprocessing import HealthcarePreprocessor
@@ -187,7 +187,7 @@ class PredictionController:
         settings = mongo.db.settings.find_one({"id": "ai_config"})
         active_model = settings.get("active_model") if settings else "models/gemini-flash-latest"
 
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
         
         # Build combined prompt
         prompt = self._build_prompt(data)
@@ -198,8 +198,7 @@ class PredictionController:
         last_error = ""
         for model_name in models_to_try:
             try:
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(prompt)
+                response = client.models.generate_content(model=model_name, contents=prompt)
                 
                 # Log success
                 mongo.db.ai_stats.update_one({"id": "global"}, {"$inc": {"success": 1}}, upsert=True)

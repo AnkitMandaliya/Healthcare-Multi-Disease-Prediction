@@ -23,7 +23,9 @@ import CustomSelect from '../components/ui/CustomSelect';
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [forgotPwdStep, setForgotPwdStep] = useState(1); // 1: Send OTP, 2: Verify OTP, 3: Reset Pwd
+  const [loginStep, setLoginStep] = useState(1); // 1: Credentials, 2: OTP
+  const [loginUid, setLoginUid] = useState(null);
+  const [forgotPwdStep, setForgotPwdStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'clinician', otp: '', phone: '' });
   const [error, setError] = useState('');
@@ -83,7 +85,8 @@ const Auth = () => {
       else if (forgotPwdStep === 2) handleVerifyOTP();
       else if (forgotPwdStep === 3) handleReset();
     } else {
-       handleAuth();
+       if (isLogin && loginStep === 2) handleLoginVerify();
+       else handleAuth();
     }
   };
 
@@ -159,15 +162,49 @@ const Auth = () => {
     }
   };
 
+  const handleForgotClick = () => {
+    const identification = formData.email?.trim() || '';
+    setError('');
+    
+    // Detect type
+    if (/^\d+$/.test(identification.replace(/\s/g, ''))) {
+      // It's a phone number
+      setFormData({ ...formData, email: '', phone: identification, otp: '' });
+    } else if (identification.includes('@')) {
+      // It's an email
+      setFormData({ ...formData, email: identification, phone: '', otp: '' });
+    } else {
+      // Unknown or empty, just reset both but keep name/role for reg
+      setFormData({ ...formData, email: '', phone: '', otp: '' });
+    }
+    
+    setIsForgotPassword(true);
+    setForgotPwdStep(1);
+  };
+
   const handleAuth = async () => {
     setError('');
     setLoading(true);
     
     try {
        const endpoint = isLogin ? '/api/login' : '/api/register';
+       const phoneFormatted = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : '';
+       
+       let loginIdentifier = formData.email?.trim() || '';
+       if (/^\d{10}$/.test(loginIdentifier.replace(/\s/g, ''))) {
+          loginIdentifier = '+91' + loginIdentifier.replace(/\s/g, '');
+       }
+
        const bodyData = isLogin 
-         ? { email: formData.email, password: formData.password }
-         : { ...formData, phone: '+91' + formData.phone.replace(/\D/g, '') };
+         ? { email: loginIdentifier, password: formData.password }
+         : { ...formData, phone: phoneFormatted };
+
+       // Register validation: Name, Email OR Phone, and Password
+       if (!isLogin) {
+         if (!formData.name || !formData.password || (!formData.email && !formData.phone)) {
+           throw new Error("Credentials missing: Name, (Email OR Phone), and Password required.");
+         }
+       }
 
        const res = await fetch(endpoint, {
           method: 'POST',
@@ -185,9 +222,15 @@ const Auth = () => {
        if (!res.ok) throw new Error(data?.error || 'Authentication failed');
 
        if (isLogin) {
-          login(data.user, data.access_token);
-          if (data.user.role === 'admin') navigate('/admin');
-          else navigate('/dashboard');
+          if (data.otp_required) {
+            setLoginStep(2);
+            setLoginUid(data.uid);
+            setError(`Security node check: Verification dispatched to ${data.sent_to}`);
+          } else {
+            login(data.user, data.access_token);
+            if (data.user.role === 'admin') navigate('/admin');
+            else navigate('/dashboard');
+          }
        } else {
           setIsLogin(true);
           setError('Registration successful. Establish your connection hub below.');
@@ -196,6 +239,28 @@ const Auth = () => {
        setError(err.message);
     } finally {
        setLoading(false);
+    }
+  };
+
+  const handleLoginVerify = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/login-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: loginUid, otp: formData.otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+      
+      login(data.user, data.access_token);
+      if (data.user.role === 'admin') navigate('/admin');
+      else navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -215,10 +280,20 @@ const Auth = () => {
          throw new Error("Server communication failed. Please ensure the backend is running and connected.");
       }
       if (!res.ok) throw new Error(data.error || 'Reset failed');
-      setError('Protocol re-secured successfully. Access active.');
+      // Protocol re-secured: Prepare login context
+      const secureIdentifier = formData.email || formData.phone || '';
+      setFormData({ 
+        ...formData, 
+        email: secureIdentifier, 
+        password: '', 
+        otp: '', 
+        phone: '' 
+      });
+      
       setIsForgotPassword(false);
       setForgotPwdStep(1);
       setIsLogin(true);
+      setError('Protocol re-secured. Identity verified. Access context initialized.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -270,7 +345,7 @@ const Auth = () => {
                    { icon: Database, text: "99.8% Accuracy", sub: "Clinical Validated" },
                    { icon: ShieldCheck, text: "AES-256 Node", sub: "Enterprise Encrypted" },
                    { icon: Stethoscope, text: "500+ Labs", sub: "Internal Network" },
-                   { icon: CheckCircle2, text: "v3.0 Active", sub: "Latest Model Core" }
+                   { icon: CheckCircle2, text: "v1.0 Active", sub: "Latest Model Core" }
                  ].map((stat, i) => (
                     <div key={i} className="p-5 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15 transition-all">
                        <stat.icon size={20} className="text-white mb-2" />
@@ -345,60 +420,89 @@ const Auth = () => {
                        </div>
                     )}
 
-                    <div>
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Establish Identifer (Email)</label>
-                       <div className="mt-2 relative">
-                          <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input 
-                             type="email" 
-                             required 
-                             className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
-                             placeholder="node@healthai.com"
-                             value={formData.email}
-                             onChange={(e) => setFormData({...formData, email: e.target.value})}
-                          />
-                       </div>
-                    </div>
+                    {(!isLogin || loginStep === 1) && (
+                      <div className="space-y-5">
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{isLogin ? 'Establish Identifer (Email or Phone)' : 'Establish Identifer (Email)'}</label>
+                           <div className="mt-2 relative">
+                              {isLogin && formData.email && /^\d+$/.test(formData.email.replace(/\s/g, "")) ? (<Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary animate-pulse transition-all" />) : (<Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />)}
+                              <input 
+                                 type="text" 
+                                 required={isLogin} 
+                                 className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                 placeholder={isLogin ? "email@health.com / 99xxxxxx" : "node@healthai.com"}
+                                 value={formData.email}
+                                 onChange={(e) => setFormData({...formData, email: e.target.value})}
+                              />
+                           </div>
+                        </div>
+    
+                        {!isLogin && (
+                           <div>
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Rescue Mobile No.</label>
+                              <div className="mt-2 relative flex items-center">
+                                 <Phone size={18} className="absolute left-4 z-10 text-slate-400" />
+                                 <span className="absolute left-10 z-10 text-sm font-bold pointer-events-none text-slate-600 dark:text-slate-300">+91</span>
+                                 <input 
+                                    type="text" 
+                                    required={!formData.email}
+                                    className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[4.5rem] pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                    placeholder="00000 00000"
+                                    value={formData.phone}
+                                    onChange={handlePhoneChange}
+                                 />
+                              </div>
+                           </div>
+                        )}
+    
+                        <div>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Passkey</label>
+                           <div className="mt-2 relative">
+                              <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                              <input 
+                                 type={showPassword ? "text" : "password"}
+                                 required 
+                                 className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                 placeholder="••••••••"
+                                 value={formData.password}
+                                 onChange={(e) => setFormData({...formData, password: e.target.value})}
+                              />
+                              <button
+                                 type="button"
+                                 onClick={() => setShowPassword(!showPassword)}
+                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors"
+                              >
+                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                           </div>
+                        </div>
+                      </div>
+                    )}
 
-                    {!isLogin && (
-                       <div>
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Rescue Mobile No.</label>
-                          <div className="mt-2 relative flex items-center">
-                             <Phone size={18} className="absolute left-4 z-10 text-slate-400" />
-                             <span className="absolute left-10 z-10 text-sm font-bold pointer-events-none text-slate-600 dark:text-slate-300">+91</span>
-                             <input 
-                                type="text" 
-                                required
-                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[4.5rem] pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
-                                placeholder="00000 00000"
-                                value={formData.phone}
-                                onChange={handlePhoneChange}
-                             />
+                    {isLogin && loginStep === 2 && (
+                       <div className="space-y-6">
+                          <div className="p-5 rounded-3xl bg-primary/5 border border-primary/10 text-center space-y-2">
+                             <MessageSquare className="mx-auto text-primary" size={32} />
+                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">Authentication Factor</p>
+                             <p className="text-[9px] font-bold text-slate-400">Security node verification token required for access.</p>
+                          </div>
+                          <div>
+                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 text-center block">6-Digit Code (OTP)</label>
+                             <div className="mt-3 relative">
+                                <ShieldCheck size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                                <input 
+                                   type="text" 
+                                   required 
+                                   maxLength="6"
+                                   className="w-full h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-2xl font-black tracking-[0.5em] focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-inner"
+                                   placeholder="000000"
+                                   value={formData.otp}
+                                   onChange={(e) => setFormData({...formData, otp: e.target.value.replace(/\D/g, '')})}
+                                />
+                             </div>
                           </div>
                        </div>
                     )}
-
-                    <div>
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Secure Passkey</label>
-                       <div className="mt-2 relative">
-                          <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input 
-                             type={showPassword ? "text" : "password"}
-                             required 
-                             className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
-                             placeholder="••••••••"
-                             value={formData.password}
-                             onChange={(e) => setFormData({...formData, password: e.target.value})}
-                          />
-                          <button
-                             type="button"
-                             onClick={() => setShowPassword(!showPassword)}
-                             className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors"
-                          >
-                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                       </div>
-                    </div>
 
                     {!isLogin && (
                        <div>
@@ -567,14 +671,14 @@ const Auth = () => {
             className="mt-10 flex flex-col gap-4 text-center"
           >
              <button 
-                onClick={() => { setIsLogin(!isLogin); setIsForgotPassword(false); setForgotPwdStep(1); setError(''); }}
+                onClick={() => { setIsLogin(!isLogin); setIsForgotPassword(false); setLoginStep(1); setForgotPwdStep(1); setError(''); }}
                 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-colors"
              >
-                {isForgotPassword ? 'Abort Recovery Protocol' : (isLogin ? 'Request New Clinical Identity' : 'Return to Login Context')}
+                {isForgotPassword ? 'Abort Recovery Protocol' : (isLogin ? (loginStep === 2 ? 'Abort Verification' : 'Request New Clinical Identity') : 'Return to Login Context')}
              </button>
              {isLogin && !isForgotPassword && (
                 <button 
-                  onClick={() => setIsForgotPassword(true)}
+                  onClick={handleForgotClick}
                   className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 hover:text-amber-600 transition-colors"
                 >
                   Forgot Secure Passkey?
