@@ -51,33 +51,53 @@ export const generateHealthReport = async (data) => {
                     </div>
                     <div style="background: ${riskLevel === 'High' ? '#fef2f2' : riskLevel === 'Medium' ? '#fffbeb' : '#f0fdf4'}; padding: 25px; border-radius: 25px; border: 2px solid ${riskLevel === 'High' ? '#ef4444' : riskLevel === 'Medium' ? '#f59e0b' : '#10b981'};">
                         <h3 style="margin: 0 0 10px 0; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #64748b; font-weight: 900;">Neural Probability</h3>
-                        <p style="margin: 0; font-size: 24px; font-weight: 950; color: ${riskLevel === 'High' ? '#ef4444' : riskLevel === 'Medium' ? '#d97706' : '#059669'};">${prediction}</p>
+                        <div style="display: flex; align-items: baseline; gap: 8px;">
+                            <p style="margin: 0; font-size: 24px; font-weight: 950; color: ${riskLevel === 'High' ? '#ef4444' : riskLevel === 'Medium' ? '#d97706' : '#059669'};">${prediction}</p>
+                            <p style="margin: 0; font-size: 14px; font-weight: 900; color: #64748b;">(${(probability * 100).toFixed(1)}%)</p>
+                        </div>
                         <p style="margin: 5px 0 0 0; font-size: 14px; font-weight: 900;">${riskLevel.toUpperCase()} RISK PROFILE</p>
                     </div>
                 </div>
 
                 <!-- Biometrics -->
-                <div style="margin-bottom: 40px;">
-                    <h3 style="margin: 0 0 20px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #1e293b; font-weight: 950; border-left: 5px solid #2463eb; padding-left: 15px;">Biometric Data Points</h3>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                <div style="margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #1e293b; font-weight: 950; border-left: 5px solid #2463eb; padding-left: 15px;">Biometric Data Points</h3>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
                         ${Object.entries(inputs || {}).map(([key, val]) => `
-                            <div style="padding: 12px; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 15px; text-align: center;">
-                                <p style="margin: 0; font-size: 9px; color: #94a3b8; font-weight: 950; text-transform: uppercase;">${key}</p>
-                                <p style="margin: 4px 0 0 0; font-size: 12px; font-weight: 900; color: #1e293b;">${val}</p>
+                            <div style="padding: 10px; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 12px; text-align: center;">
+                                <p style="margin: 0; font-size: 8px; color: #94a3b8; font-weight: 950; text-transform: uppercase;">${key}</p>
+                                <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: 900; color: #1e293b;">${val}</p>
                             </div>
                         `).join('')}
                     </div>
                 </div>
 
+                <!-- Neural Interpretations (Feature Impact) -->
+                ${explanation && explanation.length > 0 ? `
+                <div style="margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #1e293b; font-weight: 950; border-left: 5px solid #10b981; padding-left: 15px;">Diagnostic Interpretations</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        ${explanation.slice(0, 6).map(item => `
+                            <div style="padding: 12px; background: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 9px; font-weight: 900; color: #64748b; text-transform: uppercase;">${item.feature}</span>
+                                <span style="font-size: 10px; font-weight: 950; color: ${item.impact > 0 ? '#2463eb' : '#10b981'};">
+                                    ${item.impact > 0 ? '+' : ''}${item.impact.toFixed(2)}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
                 <!-- Quick Advice -->
                 ${aiAdvice?.quick && !aiAdvice.quick.includes('Generating') ? `
-                 <div class="clinical-box dark-box" style="flex: 1; min-height: 0; overflow: hidden; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                        <div style="width: 12px; height: 12px; background: #38bdf8; border-radius: 3px; transform: rotate(45deg);"></div>
-                        <h3 style="margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 3px; color: #38bdf8; font-weight: 950;">Clinical Quick Advisory</h3>
+                 <div class="clinical-box dark-box" style="flex: 1; min-height: 0; overflow: hidden; margin-bottom: 15px; padding: 25px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 10px; height: 10px; background: #38bdf8; border-radius: 2px; transform: rotate(45deg);"></div>
+                        <h3 style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: #38bdf8; font-weight: 950;">Clinical Quick Advisory</h3>
                     </div>
-                    <div style="font-size: 11.5px; line-height: 1.5; color: #e2e8f0; font-weight: 500;">
-                        ${aiAdvice.quick}
+                    <div style="font-size: 10.5px; line-height: 1.6; color: #e2e8f0; font-weight: 500;">
+                        ${aiAdvice.quick.substring(0, 800)}${aiAdvice.quick.length > 800 ? '...' : ''}
                     </div>
                 </div>
                 ` : ''}

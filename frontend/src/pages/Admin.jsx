@@ -25,6 +25,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [riskFilter, setRiskFilter] = useState('all');
+  const [diseaseFilter, setDiseaseFilter] = useState('all');
   const [newNotice, setNewNotice] = useState({ title: '', message: '', type: 'info' });
   const [aiStats, setAiStats] = useState(null);
   const [models, setModels] = useState([]);
@@ -32,13 +34,17 @@ const Admin = () => {
   const [updatingModel, setUpdatingModel] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ show: false, userId: null });
 
-  // Debounced search effect
+  // Unified fetch effect for all interactive states
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchAdminData();
-    }, 500); // 500ms delay
-    return () => clearTimeout(timer);
-  }, [searchQuery, roleFilter, activeTab]);
+    if (activeTab === 'users' || activeTab === 'inferences') {
+      const timer = setTimeout(() => {
+        fetchAdminData();
+      }, activeTab === 'inferences' ? 0 : 500); // 0ms for buttons, 500ms for search typing
+      return () => clearTimeout(timer);
+    } else if (activeTab === 'overview' || activeTab === 'broadcast' || activeTab === 'ai') {
+       fetchAdminData();
+    }
+  }, [activeTab, searchQuery, roleFilter, diseaseFilter, riskFilter]);
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -50,8 +56,10 @@ const Admin = () => {
         const usersResponse = await api.get(`/api/admin/users?search=${searchQuery}&role=${roleFilter}`);
         setUsers(usersResponse.data);
       } else if (activeTab === 'inferences') {
-        const infResponse = await api.get(`/api/admin/inferences?search=${searchQuery}`);
-        setInferences(infResponse.data);
+        const url = `/api/admin/inferences?search=${encodeURIComponent(searchQuery)}&disease=${encodeURIComponent(diseaseFilter)}&risk=${encodeURIComponent(riskFilter)}&cb=${Date.now()}`;
+        setInferences([]); 
+        const infResponse = await api.get(url);
+        setInferences(Array.isArray(infResponse.data) ? infResponse.data : []);
       } else if (activeTab === 'broadcast') {
         const notifsResponse = await api.get('/api/admin/notifications');
         setNotifications(notifsResponse.data);
@@ -147,17 +155,23 @@ const Admin = () => {
           </p>
         </div>
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl gap-1 flex-wrap">
-           {['overview', 'users', 'inferences', 'broadcast', 'ai'].map(tab => (
-             <button
-               key={tab}
-               onClick={() => { setActiveTab(tab); setSearchQuery(''); }}
-               className={`px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                 activeTab === tab ? 'bg-white dark:bg-slate-900 text-primary shadow-sm scale-105' : 'text-slate-500 hover:text-slate-800'
-               }`}
-             >
-               {tab}
-             </button>
-           ))}
+            {['overview', 'users', 'inferences', 'broadcast', 'ai'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => { 
+                  setActiveTab(tab); 
+                  setSearchQuery(''); 
+                  setRoleFilter('all');
+                  setDiseaseFilter('all');
+                  setRiskFilter('all');
+                }}
+                className={`px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeTab === tab ? 'bg-white dark:bg-slate-900 text-primary shadow-sm scale-105' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
         </div>
       </div>
 
@@ -177,8 +191,8 @@ const Admin = () => {
               <StatCard title="Remaining Power" value={Math.max(0, 1500 - dashboardData.stats.total_predictions)} icon={Zap} color="bg-emerald-500" subtitle="Quota Baki Units" delay={0.4} />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden h-fit">
                  <div className="px-6 py-5 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
                     <h2 className="text-xl font-black dark:text-white uppercase tracking-tight">Recent Activity Stream</h2>
                     <Activity className="text-primary" size={20} />
@@ -205,14 +219,14 @@ const Admin = () => {
                             <p className={`text-[10px] font-black uppercase tracking-widest ${
                                p.risk_level === 'High' ? 'text-red-500' : 'text-emerald-500'
                             }`}>{p.risk_level} RISK</p>
-                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">{new Date(p.timestamp).toLocaleTimeString()}</p>
+                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">{new Date(p.timestamp).toLocaleDateString()}</p>
                          </div>
                       </motion.div>
                     ))}
                  </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-6">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-6 h-fit">
                  <h2 className="text-xl font-black dark:text-white uppercase tracking-tight mb-6 mt-2 text-center">Neural Load Distribution</h2>
                  <div className="space-y-6 overflow-y-auto max-h-[400px] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full pr-2">
                     {dashboardData.spread.map((item, idx) => (
@@ -251,39 +265,79 @@ const Admin = () => {
           >
             <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
                <div>
-                 <h2 className="text-xl font-black dark:text-white uppercase tracking-tight">{activeTab === 'users' ? 'Clinician Registry' : 'Neural Inference Logs'}</h2>
+                 <h2 className="text-xl font-black dark:text-white uppercase tracking-tight">
+                    {activeTab === 'users' ? 'Clinician Registry' : 'Neural Inference Logs'}
+                    <span className="ml-3 text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md">
+                       {(activeTab === 'users' ? users : inferences).length} Nodes ({diseaseFilter}/{riskFilter})
+                    </span>
+                 </h2>
                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1">Historical Node State & Tracking</p>
                </div>
-               <div className="flex flex-col md:flex-row gap-4 w-full">
-                 <div className="relative flex-1">
-                   <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                   <input 
-                     type="text" 
-                     placeholder={`Live search ${activeTab}...`} 
-                     value={searchQuery}
-                     onChange={(e) => setSearchQuery(e.target.value)}
-                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-black uppercase outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" 
-                   />
-                 </div>
-                 
-                 {activeTab === 'users' && (
-                   <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
-                     {['all', 'admin', 'clinician', 'doctor', 'patient'].map((r) => (
-                       <button
-                         key={r}
-                         onClick={() => setRoleFilter(r)}
-                         className={`px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
-                           roleFilter === r 
-                             ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' 
-                             : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800 hover:border-slate-200'
-                         }`}
-                       >
-                         {r}
-                       </button>
-                     ))}
-                   </div>
-                 )}
-               </div>
+                <div className="flex flex-col md:flex-row gap-4 w-full">
+                  <div className="relative flex-1">
+                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder={`Live search ${activeTab}...`} 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-black uppercase outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" 
+                    />
+                  </div>
+                  
+                  {activeTab === 'users' && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+                      {['all', 'admin', 'clinician', 'doctor', 'patient'].map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => setRoleFilter(r)}
+                          className={`px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                            roleFilter === r 
+                              ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' 
+                              : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800 hover:border-slate-200'
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeTab === 'inferences' && (
+                    <div className="flex flex-col md:flex-row gap-3">
+                         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                           {['all', 'Diabetes', 'Heart', 'Lung'].map((d) => (
+                             <button
+                               key={d}
+                               onClick={() => setDiseaseFilter(d)}
+                               className={`px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                                 diseaseFilter === d 
+                                   ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' 
+                                   : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800 hover:border-slate-200'
+                               }`}
+                             >
+                               {d === 'all' ? 'All' : d}
+                             </button>
+                           ))}
+                         </div>
+                         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                           {['all', 'High', 'Medium', 'Low'].map((r) => (
+                             <button
+                               key={r}
+                               onClick={() => setRiskFilter(r)}
+                               className={`px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                                 riskFilter === r 
+                                   ? 'bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-500/20' 
+                                   : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-100 dark:border-slate-800 hover:border-slate-200'
+                               }`}
+                             >
+                               {r === 'all' ? 'All' : r}
+                             </button>
+                           ))}
+                         </div>
+                    </div>
+                  )}
+                </div>
             </div>
 
             <div className="overflow-auto max-h-[550px] custom-scrollbar relative">
@@ -302,7 +356,7 @@ const Admin = () => {
                          <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Diagnostic Link</th>
                          <th className="px-4 py-4 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Confidence</th>
                          <th className="px-4 py-4 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Risk Grade</th>
-                         <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] text-right">Timestamp</th>
+                         <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] text-right">Date</th>
                        </>
                      )}
                    </tr>
@@ -383,7 +437,7 @@ const Admin = () => {
                             </span>
                          </td>
                          <td className="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest font-mono">
-                            {new Date(inf.timestamp).toLocaleString()}
+                            {new Date(inf.timestamp).toLocaleDateString()}
                          </td>
                        </motion.tr>
                     ))}
@@ -407,7 +461,7 @@ const Admin = () => {
             exit={{ opacity: 0, scale: 0.95 }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-8"
           >
-             <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl relative overflow-hidden group">
+             <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl relative overflow-hidden group h-fit">
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:rotate-12 group-hover:scale-110 transition-all duration-700 pointer-events-none">
                    <Bell size={120} />
                 </div>

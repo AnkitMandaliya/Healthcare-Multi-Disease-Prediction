@@ -5,13 +5,13 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
-      const savedUser = localStorage.getItem('user');
+      const savedUser = sessionStorage.getItem('user');
       return savedUser ? JSON.parse(savedUser) : null;
     } catch { return null; }
   });
 
-  const [token, setToken] = useState(() => localStorage.getItem('token') || null);
-  const [loading, setLoading] = useState(!localStorage.getItem('token')); // Only load if we don't have a token to verify
+  const [token, setToken] = useState(() => sessionStorage.getItem('token') || null);
+  const [loading, setLoading] = useState(!sessionStorage.getItem('token')); // Only load if we don't have a token to verify
   const [notifications, setNotifications] = useState([]);
 
   const fetchNotifications = async (currentToken) => {
@@ -39,8 +39,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Load user from local storage if token exists
     try {
-      const storedUser = localStorage.getItem('user');
-      const storedToken = localStorage.getItem('token');
+      const storedUser = sessionStorage.getItem('user');
+      const storedToken = sessionStorage.getItem('token');
       
       if (storedUser && storedToken) {
         try {
@@ -49,14 +49,14 @@ export const AuthProvider = ({ children }) => {
           fetchNotifications(storedToken);
         } catch (parseErr) {
           console.warn("Session data corrupted, resetting node.");
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
+          sessionStorage.removeItem('user');
+          sessionStorage.removeItem('token');
         }
       }
     } catch (err) {
       console.error("Critical: Failed to synchronize neural session", err);
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('token');
     } finally {
       setLoading(false);
     }
@@ -74,8 +74,8 @@ export const AuthProvider = ({ children }) => {
     const sessionUser = { ...userData, session_start: new Date().toISOString() };
     setUser(sessionUser);
     setToken(jwtToken);
-    localStorage.setItem('user', JSON.stringify(sessionUser));
-    localStorage.setItem('token', jwtToken);
+    sessionStorage.setItem('user', JSON.stringify(sessionUser));
+    sessionStorage.setItem('token', jwtToken);
     fetchNotifications(jwtToken);
   };
 
@@ -83,13 +83,13 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     setNotifications([]);
-    localStorage.clear(); 
+    sessionStorage.clear(); 
   };
 
   const updateRole = (role) => {
     setUser(prev => {
        const updated = { ...prev, role };
-       localStorage.setItem('user', JSON.stringify(updated));
+       sessionStorage.setItem('user', JSON.stringify(updated));
        return updated;
     });
   };

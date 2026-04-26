@@ -458,7 +458,7 @@ const Predict = () => {
                  <h2 className="text-3xl font-black dark:text-white uppercase tracking-tight mt-6 leading-none">{result.prediction}</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center px-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start px-4">
                  {/* Circular Gauge */}
                  <div className="flex flex-col items-center justify-center relative py-4">
                     <div className="relative w-48 h-48">

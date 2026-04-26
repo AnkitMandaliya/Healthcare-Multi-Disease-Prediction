@@ -80,23 +80,40 @@ def delete_user(user_id):
 @admin_bp.route("/api/admin/inferences", methods=["GET"])
 @admin_required()
 def inferences():
-    query = {}
     search = request.args.get("search", "")
+    disease_q = request.args.get("disease", "all")
+    risk_q = request.args.get("risk", "all")
+    
+    # SYSTEM DIAGNOSTIC LOG (Absolute Path)
+    try:
+        log_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug.log")
+        with open(log_file, "a") as f:
+            f.write(f"PARAMS_RECV: search={search}, disease={disease_q}, risk={risk_q}\n")
+    except: pass
+
+    query = {}
+    
+    # 1. Broad Search Query (Email/Disease Substring)
     if search:
         query["$or"] = [
-            {"disease": {"$regex": search, "$options": "i"}},
             {"email": {"$regex": search, "$options": "i"}},
-            {"risk_level": {"$regex": search, "$options": "i"}}
+            {"disease": {"$regex": search, "$options": "i"}}
         ]
         
+    # 2. Specific Clinical Filter
+    if disease_q and disease_q != "all":
+        # Force a case-insensitive regex for the disease field
+        query["disease"] = {"$regex": disease_q, "$options": "i"}
+        
+    # 3. Risk Assessment Filter
+    if risk_q and risk_q != "all":
+        query["risk_level"] = risk_q
+            
     inf_list = list(mongo.db.records.find(query).sort("timestamp", -1))
     for p in inf_list: 
         p["_id"] = str(p["_id"])
         if "timestamp" in p and hasattr(p["timestamp"], "isoformat"):
             p["timestamp"] = p["timestamp"].isoformat()
-        elif "timestamp" not in p:
-            from datetime import datetime
-            p["timestamp"] = datetime.now().isoformat()
     return jsonify(inf_list)
 
 @admin_bp.route("/api/admin/notifications", methods=["GET", "POST"])

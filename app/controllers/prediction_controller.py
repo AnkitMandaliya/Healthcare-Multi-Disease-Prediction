@@ -153,7 +153,7 @@ class PredictionController:
             for r in records:
                 logs.append({
                     "title": f"{r['disease']} Screening",
-                    "time": r['timestamp'].strftime("%b %d, %H:%M") if hasattr(r['timestamp'], 'strftime') else "Recent",
+                    "time": r['timestamp'].strftime("%b %d") if hasattr(r['timestamp'], 'strftime') else "Recent",
                     "sub": "Individual Diagnostic",
                     "risk": r['risk_level']
                 })
