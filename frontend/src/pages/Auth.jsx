@@ -423,14 +423,14 @@ const Auth = () => {
                     {(!isLogin || loginStep === 1) && (
                       <div className="space-y-5">
                         <div>
-                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{isLogin ? 'Establish Identifer (Email or Phone)' : 'Establish Identifer (Email)'}</label>
+                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{isLogin ? 'Establish Identifier (Email or Mobile No.)' : 'Establish Identifier (Email)'}</label>
                            <div className="mt-2 relative">
                               {isLogin && formData.email && /^\d+$/.test(formData.email.replace(/\s/g, "")) ? (<Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-primary animate-pulse transition-all" />) : (<Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />)}
                               <input 
                                  type="text" 
                                  required={isLogin} 
                                  className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
-                                 placeholder={isLogin ? "email@health.com / 99xxxxxx" : "node@healthai.com"}
+                                 placeholder={isLogin ? "email@health.com / 91xxxxxx" : "node@healthai.com"}
                                  value={formData.email}
                                  onChange={(e) => setFormData({...formData, email: e.target.value})}
                               />
