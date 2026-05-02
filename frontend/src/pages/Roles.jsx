@@ -33,7 +33,7 @@ const Roles = () => {
   const fetchRoles = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/roles', {
+      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/roles', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -90,7 +90,7 @@ const Roles = () => {
   const handleDelete = async (roleName) => {
      if (!window.confirm(`Are you sure you want to permanently delete the ${roleName} role and downgrade associated users to patient?`)) return;
      try {
-        const res = await fetch(`/api/roles/${roleName}`, {
+        const res = await fetch(`https://healthcare-multi-disease-prediction.onrender.com/api/roles/${roleName}`, {
            method: 'DELETE',
            headers: { 'Authorization': `Bearer ${token}` }
         });

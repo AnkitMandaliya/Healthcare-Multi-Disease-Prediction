@@ -91,8 +91,11 @@ def seed_db():
 
 print("Checking MongoDB connection and seeding database...")
 with app.app_context():
-    seed_db()
-print("DB check/seeding complete.")
+    try:
+        seed_db()
+        print("DB check/seeding complete.")
+    except Exception as e:
+        print("DB connection failed:", e)
 
 # --- STATIC CONTENT & ERROR HANDLING ---
 @app.route("/")

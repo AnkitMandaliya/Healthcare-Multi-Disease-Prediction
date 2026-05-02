@@ -38,7 +38,7 @@ const Auth = () => {
 
   // Fetch dynamic registration roles from backend
   useEffect(() => {
-    fetch('/api/available-roles')
+    fetch('https://healthcare-multi-disease-prediction.onrender.com/api/available-roles')
       .then(res => {
          if (!res.ok) throw new Error('Backend unvailable');
          return res.text();
@@ -112,7 +112,7 @@ const Auth = () => {
     }
 
     try {
-      const res = await fetch('/api/forgot-password', {
+      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -140,7 +140,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const payloadPhone = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
-      const res = await fetch('/api/verify-otp', {
+      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email || payloadPhone, otp: formData.otp }) // Backend handles combined lookup
@@ -247,7 +247,7 @@ const Auth = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('/api/login-verify', {
+      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/login-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: loginUid, otp: formData.otp })
@@ -269,7 +269,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const payloadPhone = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
-      const res = await fetch(`/api/reset-password`, {
+      const res = await fetch(`https://healthcare-multi-disease-prediction.onrender.com/api/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email || payloadPhone, password: formData.password })

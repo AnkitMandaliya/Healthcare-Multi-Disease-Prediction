@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
       const activeToken = currentToken || token;
       if (!activeToken) return;
 
-      const res = await fetch('/api/notifications', {
+      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/notifications', {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
       if (res.status === 401) {
