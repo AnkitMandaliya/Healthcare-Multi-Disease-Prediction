@@ -1,4 +1,3 @@
-
 import os
 import sys
 from datetime import timedelta
@@ -14,14 +13,12 @@ sys.path.append(BASE_DIR)
 
 from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
-from backend.extensions import mongo, bcrypt, jwt, mail
+from app.extensions import mongo, bcrypt, jwt, mail
 
 # --- CORE INITIALIZATION ---
-# ❌ Removed static_folder (IMPORTANT FIX)
-app = Flask(__name__)
-
+app = Flask(__name__, static_folder="../frontend/dist", static_url_path="/")
 app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb://localhost:27017/healthai")
-app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET", "super-enterprise-secret-v3-enterprise-deployment-2026")
+app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET", "super-enterprise-secret-v3-enterprise-deployment-2026") # 48 chars for security
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 
 # Communication Config (OTP/Alerts)
@@ -35,27 +32,18 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 CORS(app)
 mongo.init_app(app)
 jwt.init_app(app)
-
-@jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data):
-    from bson.objectid import ObjectId
-    try:
-        user = mongo.db.users.find_one({"_id": ObjectId(jwt_data["sub"])})
-        return user
-    except:
-        return None
-
 bcrypt.init_app(app)
 mail.init_app(app)
 
 # --- MVC COMPONENT INITIALIZATION ---
-from backend.controllers import model_manager, prediction_ctrl
+from app.controllers import model_manager, prediction_ctrl
 
 # --- BLUEPRINT REGISTRATION ---
-from backend.routes.auth_routes import auth_bp
-from backend.routes.prediction_routes import predict_bp
-from backend.routes.admin_routes import admin_bp
-from backend.routes.user_routes import user_bp
+# Important: Import routes AFTER initializing components they depend on
+from app.routes.auth_routes import auth_bp
+from app.routes.prediction_routes import predict_bp
+from app.routes.admin_routes import admin_bp
+from app.routes.user_routes import user_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(predict_bp)
@@ -93,21 +81,22 @@ def seed_db():
 
 print("Checking MongoDB connection and seeding database...")
 with app.app_context():
-    try:
-        seed_db()
-        print("DB check/seeding complete.")
-    except Exception as e:
-        print("DB connection failed:", e)
+    seed_db()
+print("DB check/seeding complete.")
 
-# --- BASIC ROUTES (IMPORTANT FIX) ---
+# --- STATIC CONTENT & ERROR HANDLING ---
 @app.route("/")
-def home():
-    return "Backend is running successfully 🚀"
+def serve():
+    return "Backend is running 🚀"
 
 @app.route("/api/uploads/<filename>")
 def get_upload(filename):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     return send_from_directory(os.path.join(base_dir, "static", "uploads"), filename)
+
+@app.errorhandler(404)
+def not_found(e):
+    return send_from_directory(app.static_folder, "index.html")
 
 @app.route("/api/health")
 def health_check():
@@ -117,9 +106,12 @@ def health_check():
         "models_loaded": list(model_manager.models.keys())
     })
 
-# ❌ Removed frontend static serving routes (IMPORTANT FIX)
+@app.route("/<path:path>")
+def catch_all(path):
+    if os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, "index.html")
 
-# --- RUN LOCAL (NOT USED IN RENDER BUT SAFE) ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host='0.0.0.0', port=port)
