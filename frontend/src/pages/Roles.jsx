@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Plus, Check, X, ShieldAlert, Key, Edit2, Trash2, Command, AlertCircle } from 'lucide-react';
+import { API_BASE } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,7 +34,7 @@ const Roles = () => {
   const fetchRoles = async () => {
     setLoading(true);
     try {
-      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/roles', {
+      const res = await fetch(`${API_BASE}/api/roles`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -61,7 +62,7 @@ const Roles = () => {
     if (!formData.name) return;
     
     const isEdit = !!editingRole;
-    const url = isEdit ? `/api/roles/${editingRole.name}` : `/api/roles`;
+    const url = isEdit ? `${API_BASE}/api/roles/${editingRole.name}` : `${API_BASE}/api/roles`;
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
@@ -90,7 +91,7 @@ const Roles = () => {
   const handleDelete = async (roleName) => {
      if (!window.confirm(`Are you sure you want to permanently delete the ${roleName} role and downgrade associated users to patient?`)) return;
      try {
-        const res = await fetch(`https://healthcare-multi-disease-prediction.onrender.com/api/roles/${roleName}`, {
+        const res = await fetch(`${API_BASE}/api/roles/${roleName}`, {
            method: 'DELETE',
            headers: { 'Authorization': `Bearer ${token}` }
         });

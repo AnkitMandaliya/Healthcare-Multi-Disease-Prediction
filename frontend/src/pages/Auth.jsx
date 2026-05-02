@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '../services/api';
 import { 
   Activity, 
   Mail, 
@@ -38,7 +39,7 @@ const Auth = () => {
 
   // Fetch dynamic registration roles from backend
   useEffect(() => {
-    fetch('https://healthcare-multi-disease-prediction.onrender.com/api/available-roles')
+    fetch(`${API_BASE}/api/available-roles`)
       .then(res => {
          if (!res.ok) throw new Error('Backend unvailable');
          return res.text();
@@ -112,7 +113,7 @@ const Auth = () => {
     }
 
     try {
-      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/forgot-password', {
+      const res = await fetch(`${API_BASE}/api/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -140,7 +141,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const payloadPhone = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
-      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/verify-otp', {
+      const res = await fetch(`${API_BASE}/api/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email || payloadPhone, otp: formData.otp }) // Backend handles combined lookup
@@ -187,7 +188,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
-       const endpoint = isLogin ? '/api/login' : '/api/register';
+       const endpoint = isLogin ? `${API_BASE}/api/login` : `${API_BASE}/api/register`;
        const phoneFormatted = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : '';
        
        let loginIdentifier = formData.email?.trim() || '';
@@ -247,7 +248,7 @@ const Auth = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/login-verify', {
+      const res = await fetch(`${API_BASE}/api/login-verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ uid: loginUid, otp: formData.otp })
@@ -269,7 +270,7 @@ const Auth = () => {
     setLoading(true);
     try {
       const payloadPhone = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
-      const res = await fetch(`https://healthcare-multi-disease-prediction.onrender.com/api/reset-password`, {
+      const res = await fetch(`${API_BASE}/api/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email || payloadPhone, password: formData.password })

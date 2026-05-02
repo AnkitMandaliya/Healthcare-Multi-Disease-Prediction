@@ -1,3 +1,4 @@
+import { API_BASE } from '../services/api';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
       const activeToken = currentToken || token;
       if (!activeToken) return;
 
-      const res = await fetch('https://healthcare-multi-disease-prediction.onrender.com/api/notifications', {
+      const res = await fetch(`${API_BASE}/api/notifications`, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
       if (res.status === 401) {
