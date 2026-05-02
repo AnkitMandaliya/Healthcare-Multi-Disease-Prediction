@@ -5,6 +5,7 @@ from google import genai
 from flask import jsonify
 from datetime import datetime
 from src.preprocessing import HealthcarePreprocessor
+from backend.controllers.model_manager import model_manager
 
 class PredictionController:
     def __init__(self, model_manager):
