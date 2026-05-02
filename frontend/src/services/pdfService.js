@@ -1,5 +1,4 @@
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+
 
 /**
  * Generates a premium multi-page health report PDF.
@@ -172,6 +171,8 @@ export const generateHealthReport = async (data) => {
     document.body.appendChild(reportDiv);
 
     try {
+        const { jsPDF } = await import('jspdf');
+        const html2canvas = (await import('html2canvas')).default;
         const pdf = new jsPDF('p', 'mm', 'a4');
         const timestamp = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         const reportId = `HS-ID-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -222,6 +223,9 @@ export const generateHealthReport = async (data) => {
 export const exportToPDF = async (elementId, filename = 'health-report.pdf') => {
     const element = document.getElementById(elementId);
     if (!element) return;
+
+    const { jsPDF } = await import('jspdf');
+    const html2canvas = (await import('html2canvas')).default;
 
     const canvas = await html2canvas(element, {
         scale: 2,

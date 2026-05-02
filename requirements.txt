@@ -16,3 +16,4 @@ waitress
 pyotp
 twilio
 cloudinary
+gunicorn

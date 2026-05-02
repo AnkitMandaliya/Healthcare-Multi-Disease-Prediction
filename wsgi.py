@@ -1,6 +1,6 @@
 import os
 import sys
-from app.main import app
+from backend.server import app
 from waitress import serve
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ sys.path.append(BASE_DIR)
 
 from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
-from app.extensions import mongo, bcrypt, jwt, mail
+from backend.extensions import mongo, bcrypt, jwt, mail
 
 # --- CORE INITIALIZATION ---
 app = Flask(__name__, static_folder="../frontend/dist", static_url_path="/")
@@ -32,18 +32,28 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 CORS(app)
 mongo.init_app(app)
 jwt.init_app(app)
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    from bson.objectid import ObjectId
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(jwt_data["sub"])})
+        return user
+    except:
+        return None
+
 bcrypt.init_app(app)
 mail.init_app(app)
 
 # --- MVC COMPONENT INITIALIZATION ---
-from app.controllers import model_manager, prediction_ctrl
+from backend.controllers import model_manager, prediction_ctrl
 
 # --- BLUEPRINT REGISTRATION ---
 # Important: Import routes AFTER initializing components they depend on
-from app.routes.auth_routes import auth_bp
-from app.routes.prediction_routes import predict_bp
-from app.routes.admin_routes import admin_bp
-from app.routes.user_routes import user_bp
+from backend.routes.auth_routes import auth_bp
+from backend.routes.prediction_routes import predict_bp
+from backend.routes.admin_routes import admin_bp
+from backend.routes.user_routes import user_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(predict_bp)

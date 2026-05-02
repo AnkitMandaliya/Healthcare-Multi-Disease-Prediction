@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from app.utils.decorators import admin_required
-from app.extensions import mongo
+from backend.utils.decorators import admin_required
+from backend.extensions import mongo
 import pandas as pd
 
 admin_bp = Blueprint('admin', __name__)

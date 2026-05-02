@@ -225,6 +225,7 @@ const Auth = () => {
           if (data.otp_required) {
             setLoginStep(2);
             setLoginUid(data.uid);
+            setResendTimer(60);
             setError(`Security node check: Verification dispatched to ${data.sent_to}`);
           } else {
             login(data.user, data.access_token);
@@ -501,6 +502,18 @@ const Auth = () => {
                                 />
                              </div>
                           </div>
+
+                          <div className="text-center mt-6">
+                             <button 
+                                type="button"
+                                disabled={loading || resendTimer > 0}
+                                onClick={() => handleAuth()}
+                                className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-primary hover:text-primary/70'}`}
+                             >
+                                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                                {resendTimer > 0 ? `Resend protocol in ${resendTimer}s` : 'Re-dispatch Protocol Token'}
+                             </button>
+                          </div>
                        </div>
                     )}
 
@@ -608,21 +621,15 @@ const Auth = () => {
                           </div>
 
                           <div className="text-center">
-                             {resendTimer > 0 ? (
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                   Resend protocol in <span className="text-primary">{resendTimer}s</span>
-                                </p>
-                             ) : (
-                                <button 
-                                   type="button"
-                                   disabled={loading}
-                                   onClick={() => handleSendOTP(true)}
-                                   className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors"
-                                >
-                                   <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                                   Re-dispatch Protocol Token
-                                </button>
-                             )}
+                             <button 
+                                type="button"
+                                disabled={loading || resendTimer > 0}
+                                onClick={() => handleSendOTP(true)}
+                                className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-primary hover:text-primary/70'}`}
+                             >
+                                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                                {resendTimer > 0 ? `Resend protocol in ${resendTimer}s` : 'Re-dispatch Protocol Token'}
+                             </button>
                           </div>
                        </div>
                     )}

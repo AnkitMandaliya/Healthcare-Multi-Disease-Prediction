@@ -6,7 +6,7 @@ def admin_required():
     def wrapper(fn):
         @wraps(fn)
         def decorator(*args, **kwargs):
-            from app.extensions import mongo
+            from backend.extensions import mongo
             from bson.objectid import ObjectId
             verify_jwt_in_request()
             user_id = get_jwt_identity()

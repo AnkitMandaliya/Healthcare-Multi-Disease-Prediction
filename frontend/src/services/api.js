@@ -17,6 +17,18 @@ api.interceptors.request.use(config => {
     return config;
 }, error => Promise.reject(error));
 
+api.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response && error.response.status === 401) {
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            window.location.href = '/auth'; // Redirect to login
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const predictRisk = async (disease, data, config = {}) => {
     const endpoint = `/predict_${disease}`;
     const response = await api.post(endpoint, data, config);

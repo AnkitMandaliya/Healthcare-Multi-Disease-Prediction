@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_mail import Message
-from app.extensions import mongo, bcrypt, mail
+from backend.extensions import mongo, bcrypt, mail
 import json
 import pyotp
 import os
@@ -144,7 +144,7 @@ def login_verify():
 
 @auth_bp.route("/api/available-roles", methods=["GET"])
 def available_roles():
-    from app.extensions import mongo
+    from backend.extensions import mongo
     # Fetch roles dynamically so new roles appear in the registration dropdown
     roles_cursor = mongo.db.roles.find({"name": {"$ne": "admin"}}, {"_id": 0, "name": 1, "permissions": 1})
     roles = list(roles_cursor)
@@ -164,7 +164,7 @@ from twilio.rest import Client
 logger = logging.getLogger(__name__)
 
 def dispatch_otp(user, preferred_channel=None):
-    from app.extensions import mongo, mail
+    from backend.extensions import mongo, mail
     now = datetime.now(timezone.utc)
     
     # Generate OTP
@@ -254,7 +254,7 @@ def validate_input(email, phone):
 
 @auth_bp.route("/api/forgot-password", methods=["POST"])
 def forgot_password():
-    from app.extensions import mongo
+    from backend.extensions import mongo
     data = request.json
     email = data.get("email")
     phone = data.get("phone")
@@ -314,7 +314,7 @@ def forgot_password():
     # Email Channel
     if email:
         try:
-            from app.extensions import mail
+            from backend.extensions import mail
             msg = Message(
                 subject="HealthAI: Security Recovery Token",
                 recipients=[email],

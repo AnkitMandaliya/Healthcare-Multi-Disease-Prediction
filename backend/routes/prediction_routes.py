@@ -2,8 +2,8 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import pandas as pd
 import os
-from app.extensions import mongo
-from app.controllers import model_manager, prediction_ctrl
+from backend.extensions import mongo
+from backend.controllers import model_manager, prediction_ctrl
 
 predict_bp = Blueprint('predict', __name__)
 
@@ -23,8 +23,8 @@ def predict_endpoint(disease):
             
     try:
         return prediction_ctrl.predict(disease, request.json, email, mongo)
-    except:
-        return jsonify({"error": "Encryption key missing or expired", "status": "error"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Invalid input or prediction failed: {str(e)}", "status": "error"}), 400
 
 @predict_bp.route("/api/gemini/advice", methods=["POST"])
 @jwt_required()
@@ -35,7 +35,7 @@ def advice_endpoint():
 @predict_bp.route("/api/stats/<disease>", methods=["GET"])
 @jwt_required()
 def stats_endpoint(disease):
-    from app.main import mongo
+    from backend.extensions import mongo
     user_email = get_jwt_identity() # This is the user _id from create_access_token
     # But wait, my create_access_token uses identity=str(user["_id"])
     # I need to fetch the user email if I want to filter by email.
@@ -49,7 +49,7 @@ def stats_endpoint(disease):
 @jwt_required()
 def notifications_endpoint():
     from flask_jwt_extended import get_jwt
-    from app.main import mongo
+    from backend.extensions import mongo
     
     role = get_jwt().get("role")
     

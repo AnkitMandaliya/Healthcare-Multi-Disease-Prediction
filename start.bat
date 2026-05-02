@@ -8,7 +8,7 @@ for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5000') do taskkill /F /PID %
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173') do taskkill /F /PID %%a 2>nul
 echo.
 echo [1] Launching Python Backend...
-start "Backend" cmd /k ".\venv\Scripts\python app/main.py"
+start "Backend" cmd /k ".\venv\Scripts\python -m waitress --port=5000 backend.server:app"
 echo [2] Buffering for Neural Hub Initialization (10s)...
 timeout /t 10 > nul
 echo.
