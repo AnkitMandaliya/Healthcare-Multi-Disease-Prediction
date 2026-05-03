@@ -32,7 +32,14 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
-CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
+CORS(app, supports_credentials=True, resources={r"/*": {
+    "origins": [
+        "http://localhost:5173", 
+        "http://127.0.0.1:5173", 
+        "https://healthcare-multi-disease-prediction.onrender.com",
+        "https://healthcare-multi-disease-prediction-frontend.onrender.com"
+    ]
+}})
 mongo.init_app(app)
 jwt.init_app(app)
 

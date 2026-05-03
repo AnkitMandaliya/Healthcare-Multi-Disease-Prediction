@@ -119,12 +119,14 @@ const Auth = () => {
         body: JSON.stringify(payload)
       });
       let data;
+      const responseText = await res.text();
       try {
-         data = await res.json();
+         data = JSON.parse(responseText);
       } catch (err) {
-         throw new Error("Server communication failed. Please ensure the backend is running and connected.");
+         if (res.status >= 500) throw new Error("Neural Hub error (500). Recovery protocol unreachable.");
+         throw new Error("Server communication failed. Protocol mismatch.");
       }
-      if (!res.ok) throw new Error(data.error || 'Identity protocol failed');
+      if (!res.ok) throw new Error(data.error || data.details || 'Identity protocol failed');
       
       if (!isResend) setForgotPwdStep(2);
       setResendTimer(60); // Start 60s countdown
@@ -214,13 +216,18 @@ const Auth = () => {
        });
        
        let data;
+       const responseText = await res.text();
        try {
-           data = await res.json();
+           data = JSON.parse(responseText);
        } catch (err) {
-           throw new Error("Connection refused. The backend server or database is completely offline.");
+           console.error("Non-JSON response:", responseText);
+           if (res.status >= 500) {
+              throw new Error("Critical node failure (500). The predictive core or database is currently unstable.");
+           }
+           throw new Error("Secure transmission corrupted. Protocol mismatch detected.");
        }
        
-       if (!res.ok) throw new Error(data?.error || 'Authentication failed');
+       if (!res.ok) throw new Error(data?.error || data?.details || 'Authentication failed');
 
        if (isLogin) {
           if (data.otp_required) {
