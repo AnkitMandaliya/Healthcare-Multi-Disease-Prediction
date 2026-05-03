@@ -194,7 +194,7 @@ class PredictionController:
         prompt = self._build_prompt(data)
 
         # Try active model first, then fallbacks
-        models_to_try = [active_model, 'models/gemini-2.5-flash', 'models/gemini-flash-latest']
+        models_to_try = [active_model, 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp']
         
         last_error = ""
         for model_name in models_to_try:
