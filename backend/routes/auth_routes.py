@@ -259,100 +259,115 @@ def validate_input(email, phone):
 
 @auth_bp.route("/api/forgot-password", methods=["POST"])
 def forgot_password():
-    from backend.extensions import mongo
-    data = request.json
-    email = data.get("email")
-    phone = data.get("phone")
-    
-    # Normalize inputs
-    if email: email = email.lower().strip()
-    if phone: phone = phone.replace(" ", "")
-        
-    if not email and not phone:
-        return jsonify({"error": "Recovery identifier required"}), 400
-        
-    # Validate format
-    is_valid, msg = validate_input(email, phone)
-    if not is_valid:
-        return jsonify({"error": msg}), 400
-        
-    # Check if user exists - returns error if not found as requested
-    user_query = {"email": email} if email else {"phone": phone}
-    user = mongo.db.users.find_one(user_query)
-    
-    if not user:
-        return jsonify({"error": "No account found with this identifier"}), 404
-        
-    canonical_email = user["email"].lower()
-    now = datetime.now(timezone.utc)
-    
-    # Rate Limiting (1 OTP per 60s)
-    existing_otp = mongo.db.otps.find_one({"uid": str(user["_id"])})
-    if existing_otp and existing_otp.get("last_requested"):
-        last_req = existing_otp["last_requested"]
-        if last_req.tzinfo is None:
-            last_req = last_req.replace(tzinfo=timezone.utc)
-        if (now - last_req).total_seconds() < 60:
-            return jsonify({"error": "Please wait 60 seconds before requesting a new OTP."}), 429
+    try:
+        from backend.extensions import mongo
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid request: No JSON data provided"}), 400
             
-    # Generate OTP (using unique dynamic secret per request instead of static email hash)
-    secret = pyotp.random_base32()
-    totp = pyotp.TOTP(secret, interval=600)
-    otp = totp.now()
-    expiry = now + timedelta(minutes=10)
-    
-    # Store in DB (Linked to the unique account ID)
-    mongo.db.otps.update_one(
-        {"uid": str(user["_id"])},
-        {"$set": {
-            "otp": otp, 
-            "otp_secret": secret, 
-            "expiry": expiry,
-            "last_requested": now,
-            "attempt_count": 0
-        }},
-        upsert=True
-    )
-    
-    dispatch_success = False
-    
-    # Email Channel
-    if email:
-        try:
-            from backend.extensions import mail
-            msg = Message(
-                subject="HealthAI: Security Recovery Token",
-                recipients=[email],
-                body=f"SECURITY ALERT: Recovery protocol authorized.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
-            )
-            mail.send(msg)
-            dispatch_success = True
-        except Exception as e:
-            logger.error(f"[MAIL-ERROR] {str(e)}")
+        email = data.get("email")
+        phone = data.get("phone")
+        
+        # Normalize inputs
+        if email: email = email.lower().strip()
+        if phone: phone = phone.replace(" ", "")
             
-    # SMS Channel (Priority fallback)
-    elif phone:
-        try:
-            account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-            auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-            twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
-            if account_sid and auth_token and twilio_phone:
-                client = Client(account_sid, auth_token)
-                client.messages.create(
-                    body=f"HealthAI OTP: {otp}. Valid for 10 min. Do not share.",
-                    from_=twilio_phone,
-                    to=phone
+        if not email and not phone:
+            return jsonify({"error": "Recovery identifier required"}), 400
+            
+        # Validate format
+        is_valid, msg = validate_input(email, phone)
+        if not is_valid:
+            return jsonify({"error": msg}), 400
+            
+        # Check if user exists - returns error if not found as requested
+        user_query = {"email": email} if email else {"phone": phone}
+        user = mongo.db.users.find_one(user_query)
+        
+        if not user:
+            return jsonify({"error": "No account found with this identifier"}), 404
+            
+        canonical_email = user.get("email", "").lower()
+        now = datetime.now(timezone.utc)
+        
+        # Rate Limiting (1 OTP per 60s)
+        existing_otp = mongo.db.otps.find_one({"uid": str(user["_id"])})
+        if existing_otp and existing_otp.get("last_requested"):
+            last_req = existing_otp["last_requested"]
+            if last_req.tzinfo is None:
+                last_req = last_req.replace(tzinfo=timezone.utc)
+            if (now - last_req).total_seconds() < 60:
+                return jsonify({"error": "Please wait 60 seconds before requesting a new OTP."}), 429
+                
+        # Generate OTP (using unique dynamic secret per request instead of static email hash)
+        secret = pyotp.random_base32()
+        totp = pyotp.TOTP(secret, interval=600)
+        otp = totp.now()
+        expiry = now + timedelta(minutes=10)
+        
+        # Store in DB (Linked to the unique account ID)
+        mongo.db.otps.update_one(
+            {"uid": str(user["_id"])},
+            {"$set": {
+                "otp": otp, 
+                "otp_secret": secret, 
+                "expiry": expiry,
+                "last_requested": now,
+                "attempt_count": 0
+            }},
+            upsert=True
+        )
+        
+        dispatch_success = False
+        dispatch_error = "No valid communication vector found"
+        
+        # Email Channel
+        if email:
+            try:
+                from backend.extensions import mail
+                msg = Message(
+                    subject="HealthAI: Security Recovery Token",
+                    recipients=[email],
+                    body=f"SECURITY ALERT: Recovery protocol authorized.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
                 )
+                mail.send(msg)
                 dispatch_success = True
-            else:
-                logger.error("[SMS-ERROR] Missing Twilio environment config")
-        except Exception as e:
-            logger.error(f"[SMS-ERROR] {str(e)}")
+            except Exception as e:
+                dispatch_error = str(e)
+                logger.error(f"[MAIL-ERROR] {str(e)}")
+                
+        # SMS Channel (Priority fallback)
+        elif phone:
+            try:
+                account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+                auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+                twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+                if account_sid and auth_token and twilio_phone:
+                    client = Client(account_sid, auth_token)
+                    client.messages.create(
+                        body=f"HealthAI OTP: {otp}. Valid for 10 min. Do not share.",
+                        from_=twilio_phone,
+                        to=phone
+                    )
+                    dispatch_success = True
+                else:
+                    dispatch_error = "Missing Twilio environment config"
+                    logger.error("[SMS-ERROR] Missing Twilio environment config")
+            except Exception as e:
+                dispatch_error = str(e)
+                logger.error(f"[SMS-ERROR] {str(e)}")
+                
+        if not dispatch_success:
+            return jsonify({"error": f"Failed to dispatch recovery token: {dispatch_error}"}), 500
             
-    if not dispatch_success:
-        return jsonify({"error": "Failed to dispatch recovery token. Try again later."}), 500
-        
-    return jsonify({
+        return jsonify({
+            "status": "success",
+            "message": "OTP sent successfully to your identifier",
+            "email": canonical_email
+        }), 200
+    except Exception as e:
+        logger.error(f"[FORGOT-PWD-ERROR] {str(e)}")
+        return jsonify({"error": "Internal recovery protocol failure", "details": str(e)}), 500
         "status": "success",
         "message": "OTP sent successfully to your identifier",
         "email": canonical_email
