@@ -16,47 +16,51 @@ logger = logging.getLogger(__name__)
 
 @auth_bp.route("/api/register", methods=["POST"])
 def register():
-    data = request.json
-    name = data.get("name")
-    email = data.get("email", "").lower().strip()
-    phone = data.get("phone", "").replace(" ", "").strip()
-    password = data.get("password")
-    role = data.get("role", "clinician")
-    
-    # Requirement change: Either email or phone is required
-    if not name or not password or (not email and not phone):
-        return jsonify({"error": "Full authentication credentials required (Name, Email or Phone, and Password)"}), 400
+    try:
+        data = request.json
+        name = data.get("name")
+        email = data.get("email", "").lower().strip()
+        phone = data.get("phone", "").replace(" ", "").strip()
+        password = data.get("password")
+        role = data.get("role", "clinician")
         
-    if len(password) < 6:
-        return jsonify({"error": "Encryption passkey must be at least 6 characters"}), 400
+        # Requirement change: Either email or phone is required
+        if not name or not password or (not email and not phone):
+            return jsonify({"error": "Full authentication credentials required (Name, Email or Phone, and Password)"}), 400
+            
+        if len(password) < 6:
+            return jsonify({"error": "Encryption passkey must be at least 6 characters"}), 400
 
-    # Ensure unique identifiers in registry
-    query_parts = []
-    if email: query_parts.append({"email": email})
-    if phone: query_parts.append({"phone": phone})
-    
-    if mongo.db.users.find_one({"$or": query_parts}):
-        return jsonify({"error": "Clinical identifier (Email or Phone) already active in registry"}), 400
+        # Ensure unique identifiers in registry
+        query_parts = []
+        if email: query_parts.append({"email": email})
+        if phone: query_parts.append({"phone": phone})
         
-    hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
-    mongo.db.users.insert_one({
-        "name": name,
-        "email": email,
-        "phone": phone,
-        "password": hashed_pw,
-        "role": role,
-        "avatar": f"https://i.pravatar.cc/150?u={email or phone}"
-    })
-    
-    # Notify Admin
-    mongo.db.notifications.insert_one({
-        "title": "New Node Registered",
-        "message": f"Clinical node '{name}' ({role}) has joined the network.",
-        "type": "info",
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    })
-    
-    return jsonify({"message": "Node Registration Successful", "status": "success"}), 201
+        if mongo.db.users.find_one({"$or": query_parts}):
+            return jsonify({"error": "Clinical identifier (Email or Phone) already active in registry"}), 400
+            
+        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+        mongo.db.users.insert_one({
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "password": hashed_pw,
+            "role": role,
+            "avatar": f"https://i.pravatar.cc/150?u={email or phone}"
+        })
+        
+        # Notify Admin
+        mongo.db.notifications.insert_one({
+            "title": "New Node Registered",
+            "message": f"Clinical node '{name}' ({role}) has joined the network.",
+            "type": "info",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return jsonify({"message": "Node Registration Successful", "status": "success"}), 201
+    except Exception as e:
+        logger.error(f"[REGISTER-ERROR] {str(e)}")
+        return jsonify({"error": "Registration protocol failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/login", methods=["POST"])
 def login():
@@ -106,57 +110,61 @@ def login():
 
 @auth_bp.route("/api/login-verify", methods=["POST"])
 def login_verify():
-    data = request.json
-    uid = data.get("uid")
-    otp = str(data.get("otp", "")).strip()
-    
-    if not uid or not otp:
-        return jsonify({"error": "Verification parameters missing"}), 400
+    try:
+        data = request.json
+        uid = data.get("uid")
+        otp = str(data.get("otp", "")).strip()
         
-    from bson.objectid import ObjectId
-    user = mongo.db.users.find_one({"_id": ObjectId(uid)})
-    if not user:
-        return jsonify({"error": "Node identity lost"}), 404
+        if not uid or not otp:
+            return jsonify({"error": "Verification parameters missing"}), 400
+            
+        from bson.objectid import ObjectId
+        user = mongo.db.users.find_one({"_id": ObjectId(uid)})
+        if not user:
+            return jsonify({"error": "Node identity lost"}), 404
+            
+        # Standard OTP check - Synchronized to UID anchor
+        otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
+        if not otp_record or str(otp_record["otp"]) != otp:
+            return jsonify({"error": "Invalid security token"}), 401
         
-    # Standard OTP check - Synchronized to UID anchor
-    otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
-    if not otp_record or str(otp_record["otp"]) != otp:
-        return jsonify({"error": "Invalid security token"}), 401
-    
-    # Expiry check
-    now = datetime.now(timezone.utc)
-    expiry = otp_record["expiry"]
-    if expiry.tzinfo is None: expiry = expiry.replace(tzinfo=timezone.utc)
-    
-    if now > expiry:
-        return jsonify({"error": "Security token expired"}), 401
+        # Expiry check
+        now = datetime.now(timezone.utc)
+        expiry = otp_record["expiry"]
+        if expiry.tzinfo is None: expiry = expiry.replace(tzinfo=timezone.utc)
         
-    # Clear OTP after success
-    mongo.db.otps.delete_one({"uid": str(user["_id"])})
-    
-    # Issue JWT
-    role_data = mongo.db.roles.find_one({"name": user["role"]})
-    permissions = role_data.get("permissions", []) if role_data else []
-    
-    access_token = create_access_token(
-        identity=str(user["_id"]),
-        additional_claims={
-            "role": user["role"],
-            "name": user["name"],
-            "permissions": permissions
-        }
-    )
-    
-    return jsonify({
-        "access_token": access_token,
-        "user": {
-            "email": user["email"],
-            "name": user["name"],
-            "role": user["role"],
-            "permissions": permissions,
-            "avatar": user.get("avatar", f"https://i.pravatar.cc/150?u={user['email'].lower() if user['email'] else user['name']}")
-        }
-    }), 200
+        if now > expiry:
+            return jsonify({"error": "Security token expired"}), 401
+            
+        # Clear OTP after success
+        mongo.db.otps.delete_one({"uid": str(user["_id"])})
+        
+        # Issue JWT
+        role_data = mongo.db.roles.find_one({"name": user["role"]})
+        permissions = role_data.get("permissions", []) if role_data else []
+        
+        access_token = create_access_token(
+            identity=str(user["_id"]),
+            additional_claims={
+                "role": user["role"],
+                "name": user["name"],
+                "permissions": permissions
+            }
+        )
+        
+        return jsonify({
+            "access_token": access_token,
+            "user": {
+                "email": user["email"],
+                "name": user["name"],
+                "role": user["role"],
+                "permissions": permissions,
+                "avatar": user.get("avatar", f"https://i.pravatar.cc/150?u={user['email'].lower() if user['email'] else user['name']}")
+            }
+        }), 200
+    except Exception as e:
+        logger.error(f"[LOGIN-VERIFY-ERROR] {str(e)}")
+        return jsonify({"error": "Verification protocol failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/available-roles", methods=["GET"])
 def available_roles():
@@ -372,69 +380,76 @@ def forgot_password():
 
 @auth_bp.route("/api/verify-otp", methods=["POST"])
 def verify_otp():
-    data = request.json
-    identifier = data.get("email") # Could be email or phone from UI
-    if identifier:
-        identifier = identifier.replace(" ", "").lower().strip()
-    otp_input = str(data.get("otp", "")).strip()
-    
-    if not identifier or not otp_input:
-        return jsonify({"error": "Verification data missing"}), 400
-    
-    logger.info(f"[VERIFY] Attempting verification for {identifier}")
+    try:
+        data = request.json
+        identifier = data.get("email") # Could be email or phone from UI
+        if identifier:
+            identifier = identifier.replace(" ", "").lower().strip()
+        otp_input = str(data.get("otp", "")).strip()
         
-    # Lookup by identifier (Email or Phone)
-    user = mongo.db.users.find_one({"$or": [{"email": identifier.lower()}, {"phone": identifier}]})
-    
-    if not user:
-        return jsonify({"error": "No clinical identifier matched"}), 404
+        if not identifier or not otp_input:
+            return jsonify({"error": "Verification data missing"}), 400
         
-    otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
-    
-    if not otp_record:
-        return jsonify({"error": "No active recovery protocol found"}), 404
+        logger.info(f"[VERIFY] Attempting verification for {identifier}")
+            
+        # Lookup by identifier (Email or Phone)
+        user = mongo.db.users.find_one({"$or": [{"email": identifier.lower()}, {"phone": identifier}]})
         
-    if otp_record["otp"] != otp_input:
-        logger.warning(f"[VERIFY] OTP mismatch for {identifier}. Record: {otp_record['otp']}, Input: {otp_input}")
-        return jsonify({"error": "Invalid verification identifier"}), 401
-    
-    expiry = otp_record["expiry"]
-    if expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=timezone.utc)
+        if not user:
+            return jsonify({"error": "No clinical identifier matched"}), 404
+            
+        otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
         
-    if datetime.now(timezone.utc) > expiry:
-        logger.warning(f"[VERIFY] OTP expired for {identifier}")
-        return jsonify({"error": "OTP has expired. Re-initialize protocol."}), 401
+        if not otp_record:
+            return jsonify({"error": "No active recovery protocol found"}), 404
+            
+        if str(otp_record["otp"]) != otp_input:
+            logger.warning(f"[VERIFY] OTP mismatch for {identifier}. Record: {otp_record['otp']}, Input: {otp_input}")
+            return jsonify({"error": "Invalid verification identifier"}), 401
         
-    # OTP is valid!
-    return jsonify({"message": "Node identity verified. Proceed to passkey re-initialization.", "status": "success"}), 200
+        expiry = otp_record["expiry"]
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+            
+        if datetime.now(timezone.utc) > expiry:
+            logger.warning(f"[VERIFY] OTP expired for {identifier}")
+            return jsonify({"error": "OTP has expired. Re-initialize protocol."}), 401
+            
+        # OTP is valid!
+        return jsonify({"message": "Node identity verified. Proceed to passkey re-initialization.", "status": "success"}), 200
+    except Exception as e:
+        logger.error(f"[VERIFY-OTP-ERROR] {str(e)}")
+        return jsonify({"error": "Verification node failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/reset-password", methods=["POST"])
 def reset_password():
-    data = request.json
-    print(f"[DEBUG-RESET] Data received: {data}")
-    email = data.get("email")
-    if email:
-        email = email.replace(" ", "")
-    new_password = data.get("password")
-    
-    if not email or not new_password:
-        return jsonify({"error": "Re-initialization data missing"}), 400
+    try:
+        data = request.json
+        email = data.get("email")
+        if email:
+            email = email.replace(" ", "")
+        new_password = data.get("password")
         
-    if len(new_password) < 6:
-        return jsonify({"error": "New passkey must meet complexity requirements (6+ chars)"}), 400
+        if not email or not new_password:
+            return jsonify({"error": "Re-initialization data missing"}), 400
+            
+        if len(new_password) < 6:
+            return jsonify({"error": "New passkey must meet complexity requirements (6+ chars)"}), 400
 
-    hashed_pw = bcrypt.generate_password_hash(new_password).decode('utf-8')
-    # Update by either email or phone
-    res = mongo.db.users.update_one(
-        {"$or": [{"email": email.lower()}, {"phone": email}]}, 
-        {"$set": {"password": hashed_pw}}
-    )
-    
-    if res.modified_count == 0:
-        return jsonify({"error": "Node relocation failed or identifier invalid"}), 404
+        hashed_pw = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        # Update by either email or phone
+        res = mongo.db.users.update_one(
+            {"$or": [{"email": email.lower()}, {"phone": email}]}, 
+            {"$set": {"password": hashed_pw}}
+        )
         
-    return jsonify({"message": "Protocol re-secured successfully"}), 200
+        if res.modified_count == 0:
+            return jsonify({"error": "Node relocation failed or identifier invalid"}), 404
+            
+        return jsonify({"message": "Protocol re-secured successfully"}), 200
+    except Exception as e:
+        logger.error(f"[RESET-PWD-ERROR] {str(e)}")
+        return jsonify({"error": "Passkey reset failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/auth/verify", methods=["GET"])
 @jwt_required()
