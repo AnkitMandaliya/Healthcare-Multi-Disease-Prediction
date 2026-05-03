@@ -368,10 +368,6 @@ def forgot_password():
     except Exception as e:
         logger.error(f"[FORGOT-PWD-ERROR] {str(e)}")
         return jsonify({"error": "Internal recovery protocol failure", "details": str(e)}), 500
-        "status": "success",
-        "message": "OTP sent successfully to your identifier",
-        "email": canonical_email
-    }), 200
 
 @auth_bp.route("/api/verify-otp", methods=["POST"])
 def verify_otp():
