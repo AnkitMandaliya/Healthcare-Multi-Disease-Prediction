@@ -118,13 +118,19 @@ def health_check():
     except Exception as e:
         db_status = f"failed: {str(e)}"
 
-    mail_status = "configured" if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD') else "not configured"
+    env_vars = {
+        "MONGO_URI": "Set" if os.getenv("MONGO_URI") else "Missing",
+        "MAIL_USERNAME": "Set" if os.getenv("MAIL_USERNAME") else "Missing",
+        "MAIL_PASSWORD": "Set" if os.getenv("MAIL_PASSWORD") else "Missing",
+        "JWT_SECRET": "Set" if os.getenv("JWT_SECRET") else "Missing",
+        "TWILIO_ACCOUNT_SID": "Set" if os.getenv("TWILIO_ACCOUNT_SID") else "Missing"
+    }
 
     return jsonify({
         "status": "online",
         "timestamp": pd.Timestamp.now().isoformat(),
         "database": db_status,
-        "mail_dispatch": mail_status,
+        "environment": env_vars,
         "models_loaded": list(model_manager.models.keys())
     })
 
