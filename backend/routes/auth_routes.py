@@ -5,10 +5,14 @@ from backend.extensions import mongo, bcrypt, mail
 import json
 import pyotp
 import os
+import re
+import logging
+import traceback
 from twilio.rest import Client
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 auth_bp = Blueprint('auth', __name__)
+logger = logging.getLogger(__name__)
 
 @auth_bp.route("/api/register", methods=["POST"])
 def register():
@@ -56,37 +60,49 @@ def register():
 
 @auth_bp.route("/api/login", methods=["POST"])
 def login():
-    data = request.json
-    identifier = data.get("email", "").strip() # This can be email or phone
-    password = data.get("password")
-    
-    if not identifier or not password:
-        return jsonify({"error": "Clinical credentials missing"}), 400
-
-    # Search by email or phone
-    user = mongo.db.users.find_one({"$or": [{"email": identifier.lower()}, {"phone": identifier}]})
-    
-    password_valid = False
-    if user:
-        try:
-            password_valid = bcrypt.check_password_hash(user["password"], password)
-        except ValueError:
-            password_valid = False
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid request: No JSON data provided"}), 400
             
-    if user and password_valid:
-        # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
-        success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
-        if not success:
-            return jsonify({"error": msg}), 500
-            
-        return jsonify({
-            "otp_required": True,
-            "uid": str(user["_id"]),
-            "sent_to": msg, # Obfuscated destination info
-            "message": "Security token dispatched to your registered identifier"
-        }), 200
+        identifier = data.get("email", "").strip() # This can be email or phone
+        password = data.get("password")
         
-    return jsonify({"error": "Secure credentials mismatch or account not found"}), 401
+        if not identifier or not password:
+            return jsonify({"error": "Clinical credentials missing"}), 400
+
+        # Search by email or phone
+        user = mongo.db.users.find_one({"$or": [{"email": identifier.lower()}, {"phone": identifier}]})
+        
+        password_valid = False
+        if user:
+            try:
+                password_valid = bcrypt.check_password_hash(user["password"], password)
+            except Exception as pe:
+                logger.error(f"[LOGIN-PASSWORD-ERROR] {str(pe)}")
+                password_valid = False
+                
+        if user and password_valid:
+            # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
+            success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
+            if not success:
+                return jsonify({"error": msg}), 500
+                
+            return jsonify({
+                "otp_required": True,
+                "uid": str(user["_id"]),
+                "sent_to": msg, # Obfuscated destination info
+                "message": "Security token dispatched to your registered identifier"
+            }), 200
+            
+        return jsonify({"error": "Secure credentials mismatch or account not found"}), 401
+    except Exception as e:
+        logger.error(f"[LOGIN-CRITICAL-ERROR] {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            "error": "Internal security node failure",
+            "details": str(e) if os.environ.get("DEBUG_MODE") == "True" else "Check server logs"
+        }), 500
 
 @auth_bp.route("/api/login-verify", methods=["POST"])
 def login_verify():
@@ -153,41 +169,30 @@ def available_roles():
         roles = [{"name": "clinician", "permissions": ["view", "predict"]}, {"name": "patient", "permissions": ["view" , "predict"]}]
     return jsonify({"roles": roles}), 200
 
-import re
-import logging
-import pyotp
-import os
-from datetime import datetime, timedelta, timezone
-from flask_mail import Message
-from twilio.rest import Client
-
-logger = logging.getLogger(__name__)
 
 def dispatch_otp(user, preferred_channel=None):
     from backend.extensions import mongo, mail
     now = datetime.now(timezone.utc)
     
-    # Generate OTP
-    secret = pyotp.random_base32()
-    totp = pyotp.TOTP(secret, interval=600)
-    otp = totp.now()
-    expiry = now + timedelta(minutes=10)
-    
-    # Store in DB (Linked to the unique account ID)
-    mongo.db.otps.update_one(
-        {"uid": str(user["_id"])},
-        {"$set": {
-            "otp": otp, 
-            "otp_secret": secret, 
-            "expiry": expiry,
-            "last_requested": now,
-            "attempt_count": 0
-        }},
-        upsert=True
-    )
-    
-    # Dispatch Logic: Follow preferred channel, else fallback across clinical vectors
     try:
+        # Generate OTP
+        secret = pyotp.random_base32()
+        totp = pyotp.TOTP(secret, interval=600)
+        otp = totp.now()
+        expiry = now + timedelta(minutes=10)
+        
+        # Store in DB (Linked to the unique account ID)
+        mongo.db.otps.update_one(
+            {"uid": str(user["_id"])},
+            {"$set": {
+                "otp": otp, 
+                "otp_secret": secret, 
+                "expiry": expiry,
+                "last_requested": now,
+                "attempt_count": 0
+            }},
+            upsert=True
+        )
         # Determine target: detect if preferred_channel is a mobile identifier (contains 10+ digits)
         clean_pref = preferred_channel.replace(" ", "").replace("+", "") if preferred_channel else ""
         is_phone_used = preferred_channel and clean_pref.isdigit() and len(clean_pref) >= 10

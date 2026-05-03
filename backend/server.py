@@ -111,13 +111,39 @@ def get_upload(filename):
 
 @app.route("/api/health")
 def health_check():
+    db_status = "unknown"
+    try:
+        mongo.db.command("ping")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"failed: {str(e)}"
+
+    mail_status = "configured" if app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD') else "not configured"
+
     return jsonify({
         "status": "online",
         "timestamp": pd.Timestamp.now().isoformat(),
+        "database": db_status,
+        "mail_dispatch": mail_status,
         "models_loaded": list(model_manager.models.keys())
     })
 
 # ❌ Removed frontend static serving routes (IMPORTANT FIX)
+
+import traceback
+from werkzeug.exceptions import HTTPException
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    if isinstance(e, HTTPException):
+        return e
+    print(f"Unhandled Exception: {str(e)}")
+    print(traceback.format_exc())
+    return jsonify({
+        "error": str(e),
+        "type": type(e).__name__,
+        "traceback": traceback.format_exc() if os.environ.get("DEBUG_MODE") == "True" else "Check server logs"
+    }), 500
 
 # --- RUN LOCAL (NOT USED IN RENDER BUT SAFE) ---
 if __name__ == "__main__":
