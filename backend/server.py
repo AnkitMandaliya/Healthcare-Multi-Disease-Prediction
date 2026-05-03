@@ -4,6 +4,7 @@ import sys
 from datetime import timedelta
 from dotenv import load_dotenv
 import pandas as pd
+import re
 
 # Load environment variables
 load_dotenv()
@@ -34,10 +35,9 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 
 CORS(app, supports_credentials=True, resources={r"/*": {
     "origins": [
+        re.compile(r"https?://.*\.onrender\.com"),
         "http://localhost:5173", 
-        "http://127.0.0.1:5173", 
-        "https://healthcare-multi-disease-prediction.onrender.com",
-        "https://healthcare-multi-disease-prediction-frontend.onrender.com"
+        "http://127.0.0.1:5173"
     ]
 }})
 mongo.init_app(app)
