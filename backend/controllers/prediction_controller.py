@@ -217,7 +217,10 @@ class PredictionController:
 
         # Log failure
         mongo.db.ai_stats.update_one({"id": "global"}, {"$inc": {"failed": 1}}, upsert=True)
-        return jsonify({"advice": f"All clinical nodes exceeded quota or are offline: {last_error}", "status": "error"})
+        return jsonify({
+            "error": f"All clinical nodes exceeded quota or are offline: {last_error}", 
+            "status": "error"
+        }), 503
 
     def _build_prompt(self, data):
         return f"""

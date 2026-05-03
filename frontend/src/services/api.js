@@ -79,7 +79,7 @@ export const fetchStats = async (disease) => {
 
 export const fetchAIAdvice = async (data) => {
     try {
-        const response = await api.post('/api/gemini/advice', data);
+        const response = await api.post('/api/gemini/advice', data, { timeout: 30000 });
         return response.data;
     } catch (error) {
         throw error;
