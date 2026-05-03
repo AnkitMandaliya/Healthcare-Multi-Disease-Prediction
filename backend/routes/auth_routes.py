@@ -247,8 +247,9 @@ def dispatch_otp(user, preferred_channel=None):
 
         return False, "No valid communication vector found", None
     except Exception as e:
-        logger.error(f"[OTP-DISPATCH-ERROR] {str(e)}")
-        return False, "Neural transmission failure", None
+        err_msg = f"Neural transmission failure: {str(e)}"
+        logger.error(f"[OTP-DISPATCH-ERROR] {err_msg}")
+        return False, err_msg, None
 
 def validate_input(email, phone):
     if email and not re.match(r"[^@]+@[^@]+\.[^@]+", email):
