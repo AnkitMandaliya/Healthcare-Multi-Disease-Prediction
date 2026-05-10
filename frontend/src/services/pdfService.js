@@ -254,28 +254,24 @@ export const generateHealthReport = async (data) => {
         const safeName = (userName || 'Patient').replace(/[^a-z0-9]/gi, '_');
         const finalFilename = `HealthSync_Report_${safeDisease}_${safeName}_${timeId}.pdf`;
         
-        // CRITICAL CHROME FIX: 
-        // 1. Output as 'arraybuffer' and manually construct the Blob to force strict MIME type checking.
-        // 2. Delay URL revocation. If revokeObjectURL is called synchronously, Chrome often aborts 
-        //    the stream and downloads a generic UUID-named file instead of the actual PDF.
-        const pdfOutput = pdf.output('arraybuffer');
-        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
-        const blobUrl = URL.createObjectURL(pdfBlob);
+        // FINAL CHROME FIX: 
+        // If Chrome or extensions (like IDM) intercept 'blob:' URLs, they drop the filename and use a UUID.
+        // For small files (like this 57KB report), using a Base64 Data URI completely bypasses the blob 
+        // interception and forces the browser to respect the 'download' attribute.
+        const dataUri = pdf.output('datauristring');
         
         const link = document.createElement('a');
         link.style.display = 'none';
-        link.href = blobUrl;
+        link.href = dataUri;
         link.download = finalFilename;
         
         document.body.appendChild(link);
         link.click();
         
-        // Give Chrome's download manager time to capture the stream before cleanup
         setTimeout(() => {
             if (document.body.contains(link)) {
                 document.body.removeChild(link);
             }
-            URL.revokeObjectURL(blobUrl);
         }, 500);
 
     } catch (err) {
