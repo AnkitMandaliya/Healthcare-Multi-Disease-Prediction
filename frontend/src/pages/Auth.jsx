@@ -340,29 +340,31 @@ const Auth = () => {
               </div>
 
               <div className="space-y-6">
-                 <h2 className="text-5xl font-black text-white leading-tight tracking-tighter">
+                 <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight tracking-tighter">
                     Enterprise Tier <br/>
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-100 to-white/60">Diagnostic Intelligence</span>
                  </h2>
+
                  <p className="text-lg text-blue-100/70 leading-relaxed font-medium">
                     Securing the future of clinical diagnosis with high-fidelity neural networks and decentralized data protocols.
                  </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                  {[
                    { icon: Database, text: "99.8% Accuracy", sub: "Clinical Validated" },
                    { icon: ShieldCheck, text: "AES-256 Node", sub: "Enterprise Encrypted" },
                    { icon: Stethoscope, text: "500+ Labs", sub: "Internal Network" },
                    { icon: CheckCircle2, text: "v1.0 Active", sub: "Latest Model Core" }
                  ].map((stat, i) => (
-                    <div key={i} className="p-5 rounded-3xl bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15 transition-all">
-                       <stat.icon size={20} className="text-white mb-2" />
-                       <div className="text-white font-black text-sm uppercase tracking-wide">{stat.text}</div>
-                       <div className="text-[10px] text-blue-200/60 font-black uppercase tracking-widest">{stat.sub}</div>
+                    <div key={i} className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white/10 backdrop-blur-md border border-white/10 hover:bg-white/15 transition-all">
+                       <stat.icon size={16} className="text-white mb-1.5 sm:mb-2 sm:w-[20px] sm:h-[20px]" />
+                       <div className="text-white font-black text-xs sm:text-sm uppercase tracking-wide">{stat.text}</div>
+                       <div className="text-[8px] sm:text-[10px] text-blue-200/60 font-black uppercase tracking-widest">{stat.sub}</div>
                     </div>
                  ))}
               </div>
+
            </motion.div>
         </div>
       </div>
@@ -384,14 +386,15 @@ const Auth = () => {
              </div>
           </div>
 
-          <div className="mb-10 text-center lg:text-left">
-             <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-2">
+          <div className="mb-6 sm:mb-10 text-center lg:text-left">
+             <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-2">
                 {isForgotPassword ? (forgotPwdStep === 1 ? 'Recover Node' : (forgotPwdStep === 2 ? 'Verify Identity' : 'Secure Passkey')) : (isLogin ? 'Access Hub' : 'Initialize Node')}
              </h3>
-             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+             <p className="text-[10px] sm:text-sm font-bold text-slate-400 uppercase tracking-widest">
                 {isForgotPassword ? 'Security Protocol Sequence' : (isLogin ? 'Establish Secure Connection' : 'Create New Clinical Identifier')}
              </p>
           </div>
+
 
           <AnimatePresence mode="wait">
             <motion.form 
@@ -671,11 +674,12 @@ const Auth = () => {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full h-16 bg-primary text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] transform transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mt-8"
+                className="w-full h-14 sm:h-16 bg-primary text-white rounded-2xl sm:rounded-3xl font-black text-[10px] sm:text-xs uppercase tracking-widest shadow-2xl shadow-primary/30 hover:scale-[1.02] transform transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mt-6 sm:mt-8"
               >
                 {loading ? 'Processing Node...' : (isForgotPassword ? (forgotPwdStep === 1 ? 'Dispatch OTP Code' : (forgotPwdStep === 2 ? 'Establish Verification' : 'Finalize Passkey')) : (isLogin ? 'Establish Connection' : 'Initialize Node Registry'))}
-                {!loading && <ArrowRight size={18} />}
+                {!loading && <ArrowRight size={16} className="sm:w-[18px] sm:h-[18px]" />}
               </button>
+
             </motion.form>
           </AnimatePresence>
 

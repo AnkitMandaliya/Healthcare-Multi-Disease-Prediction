@@ -52,20 +52,19 @@ const Sidebar = ({ isOpen, onClose }) => {
         ${isOpen ? 'translate-x-0 shadow-2xl shadow-slate-900/20' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* Brand Section */}
-        <div className="p-8 relative">
-          <div className="flex items-center gap-4 text-primary relative z-10">
-            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shadow-inner border border-primary/20 group cursor-pointer">
-              <Microscope size={28} className="group-hover:rotate-12 transition-transform" />
-            </div>
-            <div>
-              <h1 className="font-black text-2xl tracking-tighter dark:text-white leading-none uppercase">HealthAI</h1>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">PRODUCTION v1.0.0</p>
-              </div>
-            </div>
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="p-5 sm:p-8 flex items-center gap-3 sm:gap-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2"
+        >
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3">
+             <Activity className="text-white sm:w-[24px] sm:h-[24px]" size={20} />
           </div>
-        </div>
+          <div>
+            <h1 className="text-lg sm:text-xl font-black dark:text-white tracking-tighter uppercase leading-none">Health<span className="text-primary">AI</span></h1>
+            <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 sm:mt-1.5">Neural Cluster v3.1</p>
+          </div>
+        </motion.div>
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-2 mt-4 relative z-10 overflow-y-auto custom-scrollbar">
@@ -76,20 +75,20 @@ const Sidebar = ({ isOpen, onClose }) => {
             <NavLink
               key={item.name}
               to={item.path}
-              onClick={onClose}
+              onClick={() => { if (window.innerWidth < 1024) onClose(); }}
               className={({ isActive }) => `
-                flex items-center justify-between px-5 py-3.5 rounded-[1.3rem] transition-all duration-300 group relative mb-1
+                flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-[1.3rem] transition-all duration-300 group relative mb-1
                 ${isActive 
                   ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50'}
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'}
               `}
             >
               {({ isActive }) => (
                 <>
-                  <div className="flex items-center gap-4">
-                    <item.icon size={20} className={isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary transition-colors'} />
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <item.icon size={18} className={`sm:w-[20px] sm:h-[20px] ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary transition-colors'}`} />
                     <div className="flex flex-col">
-                      <span className="text-sm font-bold tracking-tight">{item.name}</span>
+                      <span className="text-xs sm:text-sm font-bold tracking-tight">{item.name}</span>
                       {!isActive && <span className="text-[9px] font-medium opacity-60 uppercase tracking-widest leading-none mt-1">{item.desc}</span>}
                     </div>
                   </div>
@@ -108,7 +107,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                   <NavLink
                     key={item.name}
                     to={item.path}
-                    onClick={onClose}
+                    onClick={() => { if (window.innerWidth < 1024) onClose(); }}
                     className={({ isActive }) => `
                       flex items-center justify-between px-5 py-3.5 rounded-[1.3rem] transition-all duration-300 group relative mb-1
                       ${isActive 
@@ -136,27 +135,25 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Bottom Section */}
         <div className="p-6 mt-auto relative z-10 border-t border-slate-100 dark:border-slate-800">
-          <div className="p-5 rounded-[1.7rem] bg-slate-50 dark:bg-white/2 border border-slate-100 dark:border-white/5 relative overflow-hidden group mb-6">
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20 shadow-inner">
-                  <ShieldCheck size={18} />
+          <div className="p-4 sm:p-6 mb-4 sm:mb-8 bg-primary/5 rounded-2xl sm:rounded-3xl border border-primary/10 mx-4 sm:mx-6">
+             <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm">
+                   <BrainCircuit className="text-primary sm:w-[20px] sm:h-[20px]" size={16} />
                 </div>
                 <div>
-                  <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Protocol 9</span>
-                  <p className="text-[8px] text-emerald-600 font-bold uppercase tracking-widest mt-0.5">HIPAA ACTIVE</p>
+                   <p className="text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-widest leading-none">Diagnostic Node</p>
+                   <p className="text-xs sm:text-sm font-bold dark:text-white mt-1">L-4 Precision Cluster</p>
                 </div>
-              </div>
-              <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-relaxed font-bold uppercase tracking-tighter">
-                AES-256 NODE ENCRYPTION ACTIVE
-              </p>
-            </div>
-            <Zap size={50} className="absolute bottom-[-10px] right-[-10px] text-primary/5 -rotate-12 group-hover:scale-110 transition-transform duration-700" />
+             </div>
           </div>
           
           {/* User Hub */}
           {user ? (
-            <Link to="/profile" onClick={onClose} className="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+            <Link 
+              to="/profile" 
+              onClick={() => { if (window.innerWidth < 1024) onClose(); }}
+              className="flex items-center justify-between p-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group"
+            >
                <div className="flex items-center gap-3">
                   <div className="relative">
                     <img src={user.avatar} alt={user.name} className="w-11 h-11 rounded-xl object-cover border-2 border-primary/20 shadow-lg group-hover:border-primary transition-colors" />

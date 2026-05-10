@@ -123,3 +123,20 @@ def get_records():
         r["_id"] = str(r["_id"])
         
     return jsonify(records), 200
+
+@user_bp.route("/api/notifications", methods=["GET"])
+@jwt_required()
+def get_notifications():
+    # Only fetch notifications from the past 24 hours
+    twenty_four_hours_ago = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)).isoformat()
+    
+    # Query with timestamp filter
+    notifs = list(mongo.db.notifications.find({
+        "timestamp": {"$gte": twenty_four_hours_ago}
+    }).sort("timestamp", -1).limit(20))
+    
+    for n in notifs: n["_id"] = str(n["_id"])
+    return jsonify(notifs), 200
+
+
+

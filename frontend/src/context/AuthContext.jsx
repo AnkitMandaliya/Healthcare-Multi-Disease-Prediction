@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
   // Periodic Refresh for alerts
   useEffect(() => {
     if (token) {
-      const interval = setInterval(() => fetchNotifications(), 60000); // Every 1 min
+      const interval = setInterval(() => fetchNotifications(), 10000); // Every 10 seconds for real-time feel
       return () => clearInterval(interval);
     }
   }, [token]);

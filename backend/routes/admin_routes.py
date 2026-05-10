@@ -11,7 +11,11 @@ def dashboard():
     total_users = mongo.db.users.count_documents({})
     total_predictions = mongo.db.records.count_documents({})
     recent_predictions = list(mongo.db.records.find().sort("timestamp", -1).limit(10))
-    for p in recent_predictions: p["_id"] = str(p["_id"])
+    for p in recent_predictions: 
+        p["_id"] = str(p["_id"])
+        if "timestamp" in p and hasattr(p["timestamp"], "isoformat"):
+            p["timestamp"] = p["timestamp"].isoformat()
+
     
     # Calculate disease spread
     spread = list(mongo.db.records.aggregate([

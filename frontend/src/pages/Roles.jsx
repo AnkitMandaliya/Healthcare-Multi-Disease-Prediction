@@ -106,25 +106,27 @@ const Roles = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6">
       <div className="mb-10 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-3">
-             <Shield className="text-primary" size={32} />
+          <h1 className="text-xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-2 sm:gap-3">
+             <Shield className="text-primary sm:w-[32px] sm:h-[32px]" size={24} />
              Access Control
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 font-medium">Manage enterprise roles and granular diagnostic permissions.</p>
+          <p className="mt-1 sm:mt-2 text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Manage enterprise roles and granular diagnostic permissions.</p>
         </div>
+
         <button 
           onClick={() => {
             setEditingRole(null);
             setFormData({ name: '', permissions: [] });
             setIsFormOpen(true);
           }}
-          className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+          className="flex items-center gap-1 sm:gap-2 bg-primary text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 text-xs sm:text-base"
         >
-          <Plus size={18} /> New Role
+          <Plus size={16} className="sm:w-[18px] sm:h-[18px]" /> New Role
         </button>
+
       </div>
 
       {error && (
@@ -135,7 +137,7 @@ const Roles = () => {
       )}
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
          
          {/* Roles List */}
          <div className="lg:col-span-2 space-y-4">
@@ -149,16 +151,17 @@ const Roles = () => {
                    animate={{ opacity: 1, scale: 1 }}
                    className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group"
                  >
-                    <div className="flex justify-between items-start mb-4">
-                       <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                            <Key size={20} />
-                         </div>
-                         <div>
-                            <h3 className="text-xl font-bold text-slate-900 dark:text-white capitalize">{role.name}</h3>
-                            <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-1">Tier Level Access</p>
-                         </div>
-                       </div>
+                     <div className="flex justify-between items-start mb-3 sm:mb-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                             <Key size={16} className="sm:w-[20px] sm:h-[20px]" />
+                          </div>
+                          <div>
+                             <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white capitalize leading-none">{role.name}</h3>
+                             <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-1 sm:mt-1.5">Tier Level Access</p>
+                          </div>
+                        </div>
+
                        
                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
@@ -207,7 +210,7 @@ const Roles = () => {
                className="bg-white dark:bg-slate-900 rounded-3xl border border-primary/20 shadow-2xl p-6 lg:sticky lg:top-32"
              >
                 <div className="flex items-center justify-between mb-6">
-                   <h3 className="font-bold text-lg text-slate-900 dark:text-white uppercase tracking-tight">
+                   <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white uppercase tracking-tight">
                       {editingRole ? 'Modify Protocol' : 'Create Protocol'}
                    </h3>
                    <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">

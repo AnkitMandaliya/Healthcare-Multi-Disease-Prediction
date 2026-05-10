@@ -1,4 +1,5 @@
-
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 /**
  * Generates a premium multi-page health report PDF.
@@ -19,20 +20,20 @@ export const generateHealthReport = async (data) => {
 
     // Create a hidden div for report generation
     const reportDiv = document.createElement('div');
-    reportDiv.style.position = 'absolute';
-    reportDiv.style.left = '-9999px';
+    reportDiv.style.position = 'fixed';
+    reportDiv.style.top = '0';
+    reportDiv.style.left = '0';
     reportDiv.style.width = '850px';
-    reportDiv.style.backgroundColor = '#ffffff';
-    reportDiv.style.color = '#0f172a';
-    reportDiv.style.fontFamily = "'Inter', system-ui, -apple-system, sans-serif";
+    reportDiv.style.zIndex = '-1000';
+    reportDiv.style.opacity = '0';
+    reportDiv.style.pointerEvents = 'none';
 
     const riskColor = riskLevel === 'High' ? '#ef4444' : riskLevel === 'Medium' ? '#f59e0b' : '#10b981';
     const riskBg = riskLevel === 'High' ? '#fef2f2' : riskLevel === 'Medium' ? '#fffbeb' : '#f0fdf4';
 
     reportDiv.innerHTML = `
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-            .pdf-page { width: 850px; padding: 40px; background: #ffffff; position: relative; box-sizing: border-box; }
+            .pdf-page { width: 850px; padding: 40px; background: #ffffff; position: relative; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
             .clinical-border { border: 2px solid #e2e8f0; border-radius: 32px; padding: 40px; height: 1060px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
             .accent-bar { position: absolute; top: 0; left: 0; width: 100%; height: 8px; background: #2563eb; }
             .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #64748b; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
@@ -169,15 +170,14 @@ export const generateHealthReport = async (data) => {
     `;
 
     document.body.appendChild(reportDiv);
-
+    
     try {
-        const { jsPDF } = await import('jspdf');
-        const html2canvas = (await import('html2canvas')).default;
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         const pdf = new jsPDF('p', 'mm', 'a4');
         const timestamp = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         const reportId = `HS-ID-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
-        // Determine if Page 2 should be included
         const hasQuickAdvice = aiAdvice?.quick && !aiAdvice.quick.toLowerCase().includes('generating');
         const hasDetailedAdvice = aiAdvice?.detailed && !aiAdvice.detailed.toLowerCase().includes('pending') && !aiAdvice.detailed.toLowerCase().includes('processing');
         const hasAdvice = hasQuickAdvice || hasDetailedAdvice;
@@ -192,23 +192,72 @@ export const generateHealthReport = async (data) => {
             pdf.text(`HealthSync AI Diagnostic Node | Report ID: ${reportId} | Issued: ${timestamp} | Page ${pageNum} of ${totalPages}`, 105, 294, { align: 'center' });
         };
 
-        // Capture Page 1
-        const canvas1 = await html2canvas(document.getElementById('page-1'), { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-        pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+        const page1 = reportDiv.querySelector('#page-1');
+        if (!page1) return;
+
+        const canvas1 = await html2canvas(page1, { 
+            scale: 1.2, 
+            useCORS: true, 
+            backgroundColor: '#ffffff', 
+            logging: false,
+            onclone: (clonedDoc) => {
+                const elements = clonedDoc.getElementsByTagName("*");
+                const props = ['backgroundColor', 'color', 'borderColor', 'stroke', 'fill'];
+                for (let i = 0; i < elements.length; i++) {
+                    const el = elements[i];
+                    try {
+                        const style = (el.ownerDocument.defaultView || window).getComputedStyle(el);
+                        props.forEach(p => {
+                            const val = style[p];
+                            if (val && (val.includes("oklch") || val.includes("oklab"))) {
+                                el.style[p] = "#3b82f6";
+                            }
+                        });
+                        const attrStyle = el.getAttribute("style");
+                        if (attrStyle && (attrStyle.includes("oklch") || attrStyle.includes("oklab"))) {
+                            el.setAttribute("style", attrStyle.replace(/(oklch|oklab)\([^)]+\)/g, "#3b82f6"));
+                        }
+                    } catch (e) {}
+                }
+            }
+        });
+        
+        pdf.addImage(canvas1.toDataURL('image/jpeg', 0.7), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
         addFooter(1);
 
-        // Capture Page 2 ONLY if advice exists
         if (hasAdvice) {
             pdf.addPage();
-            const canvas2 = await html2canvas(document.getElementById('page-2'), { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-            pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', 0, 0, 210, 297);
+            const page2 = reportDiv.querySelector('#page-2');
+            if (!page2) return;
+
+            const canvas2 = await html2canvas(page2, { 
+                scale: 1.2, 
+                useCORS: true, 
+                backgroundColor: '#ffffff', 
+                logging: false,
+                onclone: (clonedDoc) => {
+                    const elements = clonedDoc.getElementsByTagName("*");
+                    for (let i = 0; i < elements.length; i++) {
+                        const style = elements[i].getAttribute("style");
+                        if (style && (style.includes("oklch") || style.includes("oklab"))) {
+                            elements[i].setAttribute("style", style.replace(/oklch\([^)]+\)/g, "#3b82f6").replace(/oklab\([^)]+\)/g, "#3b82f6"));
+                        }
+                    }
+                }
+            });
+            pdf.addImage(canvas2.toDataURL('image/jpeg', 0.7), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
             addFooter(2);
         }
 
         const timeId = new Date().getTime();
-        pdf.save(`HealthSync_Report_${disease}_${userName || 'Patient'}_${timeId}.pdf`);
+        const safeDisease = (disease || 'Diagnostic').replace(/[^a-z0-9]/gi, '_');
+        const safeName = (userName || 'Patient').replace(/[^a-z0-9]/gi, '_');
+        const finalFilename = `HealthSync_Report_${safeDisease}_${safeName}_${timeId}.pdf`;
+        
+        pdf.save(finalFilename);
+
     } catch (err) {
-        console.error("PDF Generation Critical Failure", err);
+        console.error("Report Generation Failure:", err);
     }
     finally {
         if (document.body.contains(reportDiv)) {
@@ -224,13 +273,30 @@ export const exportToPDF = async (elementId, filename = 'health-report.pdf') => 
     const element = document.getElementById(elementId);
     if (!element) return;
 
-    const { jsPDF } = await import('jspdf');
-    const html2canvas = (await import('html2canvas')).default;
-
     const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+            const elements = clonedDoc.getElementsByTagName("*");
+            const props = ['backgroundColor', 'color', 'borderColor', 'stroke', 'fill'];
+            for (let i = 0; i < elements.length; i++) {
+                const el = elements[i];
+                try {
+                    const style = (el.ownerDocument.defaultView || window).getComputedStyle(el);
+                    props.forEach(p => {
+                        const val = style[p];
+                        if (val && (val.includes("oklch") || val.includes("oklab"))) {
+                            el.style[p] = "#3b82f6";
+                        }
+                    });
+                    const attrStyle = el.getAttribute("style");
+                    if (attrStyle && (attrStyle.includes("oklch") || attrStyle.includes("oklab"))) {
+                        el.setAttribute("style", attrStyle.replace(/(oklch|oklab)\([^)]+\)/g, "#3b82f6"));
+                    }
+                } catch (e) {}
+            }
+        }
     });
 
     const imgData = canvas.toDataURL('image/png');

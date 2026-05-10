@@ -87,6 +87,28 @@ def login():
                 password_valid = False
                 
         if user and password_valid:
+            # Test user OTP bypass (Forced to True to disable OTP functionality)
+            if True: # user bypass logic maintained below for future reactivation
+                role_data = mongo.db.roles.find_one({"name": user["role"]})
+                permissions = role_data.get("permissions", []) if role_data else []
+                access_token = create_access_token(
+                    identity=str(user["_id"]),
+                    additional_claims={
+                        "role": user["role"],
+                        "name": user["name"],
+                        "permissions": permissions
+                    }
+                )
+                return jsonify({
+                    "access_token": access_token,
+                    "user": {
+                        "email": user["email"],
+                        "name": user["name"],
+                        "role": user["role"],
+                        "permissions": permissions,
+                        "avatar": user.get("avatar", f"https://i.pravatar.cc/150?u={user['email'].lower() if user['email'] else user['name']}")
+                    }
+                }), 200
             # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
             success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
             if not success:

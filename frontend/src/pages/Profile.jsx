@@ -160,12 +160,12 @@ const Profile = () => {
            />
         </div>
 
-        <div className="relative px-8 pb-10 -mt-20 flex flex-col md:flex-row items-end gap-10 pt-24">
+        <div className="relative px-5 sm:px-8 pb-6 sm:pb-10 -mt-16 sm:mt-[-20px] flex flex-col md:flex-row items-center md:items-end gap-6 sm:gap-10 pt-20 sm:pt-24">
           {/* Avatar Construction with Status Ring */}
           <div className="relative group/avatar">
             <motion.div 
               whileHover={{ scale: 1.05 }}
-              className="w-40 h-40 rounded-[3rem] bg-slate-100 dark:bg-[#0F172A] border-8 border-white dark:border-[#0B0F1A] shadow-2xl overflow-hidden relative z-10"
+              className="w-28 h-28 sm:w-40 sm:h-40 rounded-[2rem] sm:rounded-[3rem] bg-slate-100 dark:bg-[#0F172A] border-4 sm:border-8 border-white dark:border-[#0B0F1A] shadow-2xl overflow-hidden relative z-10"
             >
               <img 
                 src={previewUrl || profileData?.avatar || user.avatar} 
@@ -173,61 +173,61 @@ const Profile = () => {
                 className="w-full h-full object-cover transition-all duration-700 group-hover/avatar:scale-110" 
               />
             </motion.div>
-            <div className="absolute inset-0 bg-primary/30 blur-[60px] -z-10 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-700"></div>
+            <div className="absolute inset-0 bg-primary/30 blur-[40px] sm:blur-[60px] -z-10 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-700"></div>
           </div>
+
           
           {/* Detailed Node Meta Hub */}
-          <div className="flex-1 space-y-4 mb-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <h1 className="text-5xl font-black dark:text-white uppercase tracking-tighter drop-shadow-xl">{profileData?.name}</h1>
+          <div className="flex-1 space-y-3 sm:space-y-4 mb-4 text-center md:text-left">
+            <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 sm:gap-4">
+              <h1 className="text-3xl sm:text-5xl font-black dark:text-white uppercase tracking-tighter drop-shadow-xl">{profileData?.name}</h1>
               <div className="flex gap-2">
-                 <span className="px-5 py-2 bg-white text-emerald-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-emerald-500/20 shadow-xl backdrop-blur-md">
+                 <span className="px-3 sm:px-5 py-1.5 sm:py-2 bg-white text-emerald-600 rounded-xl sm:rounded-2xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest border-2 border-emerald-500/20 shadow-xl backdrop-blur-md">
                     {profileData?.role}
                  </span>
-                 <span className="px-5 py-2 bg-white text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 border-blue-500/20 shadow-xl backdrop-blur-md">
+                 <span className="px-3 sm:px-5 py-1.5 sm:py-2 bg-white text-blue-600 rounded-xl sm:rounded-2xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest border-2 border-blue-500/20 shadow-xl backdrop-blur-md">
                     {profileData?.specialization || "Registry Pending"}
                  </span>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-5 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-[0.05em] text-[11px]">
-               <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
-                  <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+
+            <div className="flex flex-wrap justify-center md:justify-start items-center gap-3 sm:gap-5 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-[0.05em] text-[9px] sm:text-[11px]">
+               <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-50 dark:bg-white/5 rounded-lg sm:rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                  <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
                   NODE ONLINE
                </div>
-               <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
-                  <Hash size={14} className="text-primary" />
-                  ID-HUB: {profileData?._id?.slice(-10).toUpperCase()}
+               <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-50 dark:bg-white/5 rounded-lg sm:rounded-xl border border-slate-200 dark:border-white/10">
+                  <Hash size={12} className="text-primary sm:w-[14px] sm:h-[14px]" />
+                  ID: {profileData?._id?.slice(-8).toUpperCase()}
                </div>
-               <div className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
-                  <Shield size={14} className="text-indigo-500" />
-                  UNIT: {profileData?.department || "Global Ops"}
-               </div>
-               <div className="px-4 py-2 bg-primary/10 text-primary rounded-xl font-black border border-primary/20">
-                  PRODUCTION v1.0.0
+               <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-50 dark:bg-white/5 rounded-lg sm:rounded-xl border border-slate-200 dark:border-white/10">
+                  <Shield size={12} className="text-indigo-500 sm:w-[14px] sm:h-[14px]" />
+                  {profileData?.department || "Global Ops"}
                </div>
             </div>
+
           </div>
 
           {/* Core Actions */}
-          <div className="flex gap-4 mb-4 w-full md:w-auto">
+          <div className="flex gap-3 sm:gap-4 mb-4 w-full md:w-auto">
             <motion.button 
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
                onClick={toggleEditing}
-               className="flex-1 md:flex-none px-10 py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+               className="flex-1 md:flex-none px-6 sm:px-10 py-3 sm:py-5 bg-primary text-white rounded-2xl sm:rounded-3xl font-black uppercase tracking-[0.2em] text-[9px] sm:text-[11px] shadow-2xl shadow-primary/30"
             >
                {isEditing ? "Halt Sync" : "Sync Profile"}
             </motion.button>
-            <motion.button 
-               whileHover={{ scale: 1.05, backgroundColor: '#f43f5e' }}
-               whileTap={{ scale: 0.95 }}
+            <button 
                onClick={logout}
-               className="p-5 bg-rose-500/10 text-rose-500 rounded-3xl border border-rose-500/20 hover:text-white transition-all shadow-xl"
+               className="p-3 sm:p-5 bg-rose-500/10 text-rose-500 rounded-2xl sm:rounded-3xl border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all shadow-xl active:scale-95"
+               title="Emergency Node Shutdown"
             >
-               <LogOut size={22} />
-            </motion.button>
+               <LogOut size={18} className="sm:w-[22px] sm:h-[22px]" />
+            </button>
           </div>
+
         </div>
       </motion.div>
 
@@ -293,6 +293,34 @@ const Profile = () => {
                 <div>
                    <div className="text-4xl font-black tracking-tight">{records.length}</div>
                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Predictions Executed</p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-primary/20 rounded-[2rem] blur-2xl group-hover:bg-primary/30 transition-all"></div>
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name} 
+                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] sm:rounded-[2.5rem] object-cover border-4 border-white dark:border-slate-900 shadow-2xl relative z-10" 
+                    />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+                      <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{user.name}</h2>
+                      <span className="px-3 py-1 bg-primary/10 text-primary text-[9px] sm:text-[10px] font-black rounded-full border border-primary/20 uppercase tracking-widest w-fit mx-auto sm:mx-0">
+                        {user.role} Identity
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={14} className="text-primary sm:w-[16px] sm:h-[16px]" />
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{user.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Briefcase size={14} className="text-primary sm:w-[16px] sm:h-[16px]" />
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">{user.department}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-2">
                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest opacity-80">

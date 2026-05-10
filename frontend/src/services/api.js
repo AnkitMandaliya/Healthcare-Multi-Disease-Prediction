@@ -68,9 +68,9 @@ export const predictRisk = async (disease, data, config = {}) => {
     }
 };
 
-export const fetchStats = async (disease) => {
+export const fetchStats = async (disease, range = 7) => {
     try {
-        const response = await api.get(`/api/stats/${disease}`);
+        const response = await api.get(`/api/stats/${disease}?range=${range}`);
         return response.data;
     } catch (error) {
         throw error;

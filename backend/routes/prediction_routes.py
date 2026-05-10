@@ -43,7 +43,8 @@ def stats_endpoint(disease):
     user = mongo.db.users.find_one({"_id": ObjectId(user_email)})
     email = user.get("email") if user else None
     
-    return prediction_ctrl.get_dashboard_stats(disease, mongo, user_email=email)
+    days = int(request.args.get('range', 7))
+    return prediction_ctrl.get_dashboard_stats(disease, mongo, user_email=email, days=days)
 
 @predict_bp.route("/api/notifications", methods=["GET"])
 @jwt_required()

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Menu, Sun, Moon, Sparkles, Filter, Settings, User } from 'lucide-react';
+import { Bell, Menu, Sun, Moon, Sparkles, Filter, Settings, User, X, Info, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,8 +8,13 @@ import { useState, useRef, useEffect } from 'react';
 const Navbar = ({ onMenuClick }) => {
   const { isDarkMode, toggleTheme } = useTheme();
   const { notifications, user } = useAuth();
+  const navigate = useNavigate();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [latestNotif, setLatestNotif] = useState(null);
   const notifRef = useRef(null);
+  const latestNotifId = useRef(notifications[0]?._id);
+  const isFirstMount = useRef(true);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -21,20 +26,70 @@ const Navbar = ({ onMenuClick }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#111621]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 px-8 py-4 flex items-center justify-between transition-all duration-500">
+  // Toast logic for new notifications
+  useEffect(() => {
+    // Sync on first mount with data
+    if (isFirstMount.current && notifications.length > 0) {
+      latestNotifId.current = notifications[0]?._id;
+      isFirstMount.current = false;
+      return;
+    }
 
-      <div className="flex items-center gap-6">
+    const currentLatestId = notifications[0]?._id;
+    
+    // Trigger toast if the ID of the top notification has changed
+    if (currentLatestId && currentLatestId !== latestNotifId.current) {
+      const newNotif = notifications[0];
+      setLatestNotif(newNotif);
+      setShowToast(true);
+      
+      const timer = setTimeout(() => setShowToast(false), 8000);
+      latestNotifId.current = currentLatestId;
+      return () => clearTimeout(timer);
+    }
+    
+    latestNotifId.current = currentLatestId;
+    if (notifications.length > 0) isFirstMount.current = false;
+  }, [notifications]);
+
+
+  const typeConfig = {
+    info: {
+      icon: Info,
+      color: 'text-primary',
+      bg: 'bg-primary/10',
+      border: 'border-primary/20',
+      dot: 'bg-primary'
+    },
+    success: {
+      icon: CheckCircle,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10',
+      border: 'border-emerald-500/20',
+      dot: 'bg-emerald-500'
+    },
+    warning: {
+      icon: AlertTriangle,
+      color: 'text-rose-500',
+      bg: 'bg-rose-500/10',
+      border: 'border-rose-500/20',
+      dot: 'bg-rose-500'
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-50 bg-white/70 dark:bg-[#0B0F1A]/70 backdrop-blur-xl border-b border-slate-100 dark:border-white/5 px-4 sm:px-8 py-3 sm:py-4 transition-all duration-500">
+      <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
         <button 
           onClick={onMenuClick}
-          className="md:hidden p-3 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all"
+          className="p-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-all md:hidden text-slate-600 dark:text-slate-400"
         >
           <Menu size={20} />
         </button>
-      </div>
 
-      {/* Right Side Actions */}
-      <div className="flex items-center gap-4 ml-6">
+        {/* Right Side Actions */}
+        <div className="flex items-center gap-2 sm:gap-4 ml-auto">
+
         {/* Appearance Toggle */}
         <button 
           onClick={toggleTheme}
@@ -66,41 +121,54 @@ const Navbar = ({ onMenuClick }) => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 bg-white dark:bg-[#111621] border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden z-50 origin-top-right"
+                className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-[#111621] border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden z-50 origin-top-right"
               >
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                   <div>
                     <h4 className="font-black text-sm dark:text-white uppercase tracking-tight">System Alerts</h4>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Operational Nodes: High Priority</p>
                   </div>
                   <span className="text-[10px] font-black bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-widest animate-pulse">Live</span>
                 </div>
-                <div className="max-h-[min(400px,60vh)] overflow-y-auto custom-scrollbar">
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                   {notifications.length > 0 ? notifications.map(notif => (
-                    <div key={notif._id} className="p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-slate-50 dark:border-slate-800/50 last:border-0 cursor-pointer group transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <p className="text-sm font-black text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors uppercase tracking-tight">{notif.title}</p>
-                        <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">{notif.time}</span>
+                    <div key={notif._id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 border-b border-slate-50 dark:border-slate-800/50 last:border-0 cursor-pointer group transition-colors">
+                      <div className="flex justify-between items-start mb-1.5">
+                        <p className="text-[11px] font-black text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors uppercase tracking-tight">{notif.title}</p>
+                        <span className="text-[8px] text-slate-400 font-bold whitespace-nowrap bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                           {notif.timestamp ? new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (notif.time || 'NOW')}
+                        </span>
                       </div>
                       <div className="mt-2 space-y-1">
                          <div className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${notif.type === 'warning' ? 'bg-rose-500' : 'bg-primary/50'}`}></div>
+                            <div className={`w-1.5 h-1.5 rounded-full ${typeConfig[notif.type]?.dot || 'bg-primary'}`}></div>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{notif.patient || 'System'}</p>
                          </div>
-                         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed pl-3.5 multiline-truncate-2">
+                         <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed pl-3.5 line-clamp-2">
                             {notif.message}
                          </p>
                       </div>
                     </div>
                   )) : (
-                    <div className="p-10 text-center text-slate-400">
-                       <p className="text-[10px] font-black uppercase tracking-widest">No active alerts</p>
+                    <div className="p-8 text-center text-slate-400">
+                       <p className="text-[9px] font-black uppercase tracking-widest">No active alerts</p>
                     </div>
                   )}
                 </div>
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/30 text-center border-t border-slate-100 dark:border-slate-800">
-                  <button className="text-xs font-black text-primary uppercase tracking-widest hover:underline decoration-2 underline-offset-4">Open Communication Hub</button>
-                </div>
+                {user?.role === 'admin' && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/30 text-center border-t border-slate-100 dark:border-slate-800">
+                    <button 
+                      onClick={() => {
+                        setIsNotifOpen(false);
+                        navigate('/admin', { state: { tab: 'broadcast' } });
+                      }}
+                      className="text-xs font-black text-primary uppercase tracking-widest hover:underline decoration-2 underline-offset-4"
+                    >
+                      Open Communication Hub
+                    </button>
+                  </div>
+                )}
+
               </motion.div>
             )}
           </AnimatePresence>
@@ -119,7 +187,39 @@ const Navbar = ({ onMenuClick }) => {
            </div>
         </Link>
       </div>
-    </header>
+    </div>
+
+    {/* New Notification Toast */}
+    <AnimatePresence>
+      {showToast && latestNotif && (
+        <motion.div
+          initial={{ opacity: 0, x: 50, y: -20, scale: 0.9 }}
+          animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+          exit={{ opacity: 0, x: 50, scale: 0.9 }}
+          className={`fixed top-24 right-6 z-[100] w-80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border ${typeConfig[latestNotif.type]?.border || 'border-slate-200'} rounded-3xl shadow-2xl p-5 flex items-start gap-4`}
+        >
+          <div className={`w-10 h-10 ${typeConfig[latestNotif.type]?.bg || 'bg-primary/10'} ${typeConfig[latestNotif.type]?.color || 'text-primary'} rounded-xl flex items-center justify-center shrink-0 shadow-inner`}>
+             {(() => {
+               const Icon = typeConfig[latestNotif.type]?.icon || Bell;
+               return <Icon size={20} />;
+             })()}
+          </div>
+          <div className="flex-1 min-w-0">
+             <h5 className={`text-xs font-black uppercase tracking-tight truncate ${typeConfig[latestNotif.type]?.color || 'dark:text-white'}`}>{latestNotif.title}</h5>
+             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-3 leading-relaxed font-medium">{latestNotif.message}</p>
+          </div>
+          <button 
+            onClick={() => setShowToast(false)}
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all text-slate-400 hover:text-slate-600"
+          >
+             <X size={16} />
+          </button>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </header>
+
+
   );
 };
 

@@ -130,8 +130,10 @@ def health_check():
         "MAIL_USERNAME": "Set" if os.getenv("MAIL_USERNAME") else "Missing",
         "MAIL_PASSWORD": "Set" if os.getenv("MAIL_PASSWORD") else "Missing",
         "JWT_SECRET": "Set" if os.getenv("JWT_SECRET") else "Missing",
-        "TWILIO_ACCOUNT_SID": "Set" if os.getenv("TWILIO_ACCOUNT_SID") else "Missing"
+        "TWILIO_ACCOUNT_SID": "Set" if os.getenv("TWILIO_ACCOUNT_SID") else "Missing",
+        "SKIP_OTP_USER": os.getenv("SKIP_OTP_USER", "Not Set")
     }
+
 
     return jsonify({
         "status": "online",

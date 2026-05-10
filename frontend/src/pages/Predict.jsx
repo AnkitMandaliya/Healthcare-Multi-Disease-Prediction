@@ -119,6 +119,7 @@ const Predict = () => {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiAdvice, setAiAdvice] = useState({ quick: null, detailed: null });
   const [loadingAdvice, setLoadingAdvice] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [adviceLevel, setAdviceLevel] = useState('flash'); 
   const formRef = useRef(null);
 
@@ -236,17 +237,26 @@ const Predict = () => {
     }
   };
 
-  const handleDownload = () => {
-    generateHealthReport({
-      userName: user?.name,
-      disease: selectedDisease.name,
-      prediction: result.prediction,
-      riskLevel: result.risk_level,
-      probability: result.probability,
-      explanation: result.explanation,
-      aiAdvice: aiAdvice, // Pass the whole object { quick, detailed }
-      inputs: formData
-    });
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      if (!result || !selectedDisease) return;
+      
+      await generateHealthReport({
+        userName: user?.name,
+        disease: selectedDisease.name,
+        prediction: result.prediction,
+        riskLevel: result.risk_level,
+        probability: result.probability,
+        explanation: result.explanation,
+        aiAdvice: aiAdvice,
+        inputs: formData
+      });
+    } catch (err) {
+      console.error("PDF Generation Error:", err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
 
@@ -255,13 +265,14 @@ const Predict = () => {
   return (
     <div className="max-w-3xl mx-auto w-full px-4 py-8 font-sans scroll-smooth">
       {/* Header Info */}
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">AI Diagnostic Suite</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">Precision neural inference for clinical risk assessment.</p>
+      <div className="text-center mb-6 sm:mb-10">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">AI Diagnostic Suite</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-2">Precision neural inference for clinical risk assessment.</p>
       </div>
 
+
       {/* Progress Stepper (Stitch Style) */}
-      <div className="mb-12 relative px-4">
+      <div className="mb-8 sm:mb-12 relative px-2 sm:px-4">
         <div className="flex items-center justify-between relative z-10">
           <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-800 -translate-y-1/2 z-0"></div>
           <motion.div 
@@ -270,17 +281,17 @@ const Predict = () => {
             animate={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
           />
           {steps.map((step, i) => (
-            <div key={step} className="relative z-10 flex flex-col items-center gap-2">
+            <div key={step} className="relative z-10 flex flex-col items-center gap-1 sm:gap-2">
               <div 
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 ${
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-500 ${
                   i <= currentStep 
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' 
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105 sm:scale-110' 
                     : 'bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-400'
                 }`}
               >
-                {i < currentStep ? <CheckCircle2 size={18} /> : i + 1}
+                {i < currentStep ? <CheckCircle2 size={16} className="sm:w-[18px] sm:h-[18px]" /> : i + 1}
               </div>
-              <span className={`text-[10px] uppercase font-black tracking-widest ${
+              <span className={`text-[8px] sm:text-[10px] uppercase font-black tracking-widest ${
                 i <= currentStep ? 'text-primary' : 'text-slate-400'
               }`}>{step}</span>
             </div>
@@ -288,7 +299,9 @@ const Predict = () => {
         </div>
       </div>
 
-      <div id="prediction-form" ref={formRef} className="glass-panel bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden transition-all duration-500">
+
+      <div id="prediction-form" ref={formRef} className="glass-panel bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden transition-all duration-500">
+
         <AnimatePresence mode="wait">
           {/* Step 0: Module Selection */}
           {currentStep === 0 && (
@@ -304,27 +317,28 @@ const Predict = () => {
                 <p className="text-sm text-slate-500 leading-relaxed">Select the clinical model cluster specialized for your analysis goals.</p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
                 {diseases.map((d) => (
                   <button
                     key={d.id}
                     onClick={() => setSelectedDisease(d)}
-                    className={`p-6 rounded-2xl border-2 transition-all text-left flex flex-col items-center justify-center gap-4 group ${
+                    className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all text-left flex flex-col items-center justify-center gap-2 sm:gap-4 group ${
                       selectedDisease?.id === d.id 
                         ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10' 
                         : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-white/50 dark:bg-slate-800/50'
                     }`}
                   >
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-inner" style={{backgroundColor: `${d.color}15`, color: d.color}}>
-                      <d.icon size={32} />
+                    <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-inner" style={{backgroundColor: `${d.color}15`, color: d.color}}>
+                      <d.icon size={20} className="sm:w-[32px] sm:h-[32px]" />
                     </div>
                     <div className="text-center">
-                      <h4 className="font-bold dark:text-white text-lg">{d.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Verified v1.0</p>
+                      <h4 className="font-bold dark:text-white text-sm sm:text-lg">{d.name}</h4>
+                      <p className="text-[7px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5 sm:mt-1">Verified v1.0</p>
                     </div>
                   </button>
                 ))}
               </div>
+
 
               <div className="flex justify-end pt-4">
                 <button 
@@ -517,9 +531,11 @@ const Predict = () => {
                   <div className="flex gap-4">
                     <button 
                     onClick={handleDownload}
-                    className="flex-1 h-14 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] shadow-xl transition-all uppercase tracking-widest text-xs"
+                    disabled={downloading}
+                    className="flex-1 h-14 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] shadow-xl transition-all uppercase tracking-widest text-xs disabled:opacity-70"
                     >
-                        <Download size={18} /> Download Diagnostic Report
+                        {downloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                        {downloading ? 'Generating Report...' : 'Download Diagnostic Report'}
                     </button>
                     <button 
                     onClick={() => getClinicalAdvice(false)}
@@ -584,7 +600,7 @@ const Predict = () => {
                   </div>
                 ) : (
                   <div className="prose prose-sm dark:prose-invert max-w-none font-medium leading-relaxed prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-a:text-primary">
-                      {(adviceLevel === 'flash' ? aiAdvice.quick : aiAdvice.detailed)?.split('\n').map((line, index) => {
+                      {(adviceLevel === 'flash' ? aiAdvice.quick : aiAdvice.detailed)?.split('\n')?.map((line, index) => {
                         if (line.trim().startsWith('##')) {
                          return <h3 key={index} className="text-lg font-black uppercase tracking-tight mt-6 mb-3 text-primary dark:text-white">{line.replace('##', '').trim()}</h3>;
                         }

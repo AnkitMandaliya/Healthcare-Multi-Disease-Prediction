@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, 
@@ -12,12 +14,25 @@ import {
   Database,
   UserCheck,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Info,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+
 
 const Admin = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+  }, [location.state]);
+
   const [dashboardData, setDashboardData] = useState(null);
   const [users, setUsers] = useState([]);
   const [inferences, setInferences] = useState([]);
@@ -100,16 +115,20 @@ const Admin = () => {
     }
   };
 
+  const { fetchNotifications } = useAuth();
+
   const sendAnnouncement = async (e) => {
     e.preventDefault();
     try {
       await api.post('/api/admin/notifications', newNotice);
       setNewNotice({ title: '', message: '', type: 'info' });
       fetchAdminData();
+      fetchNotifications(); // Refresh global notifications immediately
     } catch (err) {
       console.error(err);
     }
   };
+
 
   const handleModelChange = async (modelId) => {
     setUpdatingModel(true);
@@ -130,30 +149,32 @@ const Admin = () => {
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ delay }}
       whileHover={{ y: -5 }}
-      className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-md flex items-center justify-between group hover:border-primary/30 hover:shadow-xl transition-all duration-500"
+      className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 dark:border-slate-800 shadow-md flex items-center justify-between group hover:border-primary/30 hover:shadow-xl transition-all duration-500"
     >
       <div>
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{title}</p>
-        <h3 className="text-3xl font-black dark:text-white tabular-nums group-hover:text-primary transition-colors">{value}</h3>
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight mt-1">{subtitle}</p>
+        <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 sm:mb-1">{title}</p>
+        <h3 className="text-xl sm:text-3xl font-black dark:text-white tabular-nums group-hover:text-primary transition-colors leading-none">{value}</h3>
+        <p className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-tight mt-1">{subtitle}</p>
       </div>
-      <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white shadow-lg group-hover:rotate-12 transition-transform`}>
-        <Icon size={24} />
+      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${color} flex items-center justify-center text-white shadow-lg group-hover:rotate-12 transition-transform`}>
+        <Icon size={18} className="sm:w-[24px] sm:h-[24px]" />
       </div>
     </motion.div>
   );
 
+
   return (
     <div className="space-y-10">
       {/* Header Overlay */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900/50 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm backdrop-blur-xl">
         <div>
-          <h1 className="text-3xl font-black dark:text-white uppercase tracking-tighter leading-none">Command Hub</h1>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-2 flex items-center">
-             <div className="w-2 h-2 bg-primary rounded-full mr-3 animate-pulse"></div>
+          <h1 className="text-2xl sm:text-3xl font-black dark:text-white uppercase tracking-tighter leading-none">Command Hub</h1>
+          <p className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1.5 sm:mt-2 flex items-center">
+             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full mr-2 sm:mr-3 animate-pulse"></div>
              Security Tier: Level 3 Administrator 
           </p>
         </div>
+
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl gap-1 flex-wrap">
             {['overview', 'users', 'inferences', 'broadcast', 'ai'].map(tab => (
               <button
@@ -165,12 +186,13 @@ const Admin = () => {
                   setDiseaseFilter('all');
                   setRiskFilter('all');
                 }}
-                className={`px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all ${
                   activeTab === tab ? 'bg-white dark:bg-slate-900 text-primary shadow-sm scale-105' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 {tab}
               </button>
+
             ))}
         </div>
       </div>
@@ -219,7 +241,10 @@ const Admin = () => {
                             <p className={`text-[10px] font-black uppercase tracking-widest ${
                                p.risk_level === 'High' ? 'text-red-500' : 'text-emerald-500'
                             }`}>{p.risk_level} RISK</p>
-                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">{new Date(p.timestamp).toLocaleDateString()}</p>
+                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">
+                               {p.timestamp ? new Date(p.timestamp).toLocaleDateString() : 'RECENT'}
+                            </p>
+
                          </div>
                       </motion.div>
                     ))}
@@ -437,8 +462,9 @@ const Admin = () => {
                             </span>
                          </td>
                          <td className="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest font-mono">
-                            {new Date(inf.timestamp).toLocaleDateString()}
+                            {inf.timestamp ? new Date(inf.timestamp).toLocaleDateString() : 'RECENT'}
                          </td>
+
                        </motion.tr>
                     ))}
                  </tbody>
@@ -514,24 +540,37 @@ const Admin = () => {
              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl overflow-y-auto max-h-[750px] custom-scrollbar">
                 <h2 className="text-xl font-black dark:text-white uppercase tracking-tight mb-6">Broadcast Log</h2>
                 <div className="space-y-4">
-                   {notifications.map((n, idx) => (
-                     <motion.div 
-                       key={idx} 
-                       initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
-                       className="p-5 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800 group hover:border-primary/20 transition-all hover:shadow-sm"
-                     >
-                        <div className="flex justify-between items-start mb-3">
-                           <div className="flex items-center gap-3">
-                              <div className={`w-2.5 h-2.5 rounded-full ${
-                                n.type === 'warning' ? 'bg-amber-500 animate-pulse' : n.type === 'success' ? 'bg-emerald-500' : 'bg-primary'
-                              }`} />
-                              <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">{n.title}</h3>
-                           </div>
-                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{new Date(n.timestamp).toLocaleTimeString()}</span>
-                        </div>
-                        <p className="text-xs font-medium text-slate-500 leading-relaxed italic">"{n.message}"</p>
-                     </motion.div>
-                   ))}
+                   {notifications.map((n, idx) => {
+                     const typeStyles = {
+                       info: { color: 'text-primary', bg: 'bg-primary/10', icon: Info },
+                       success: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: CheckCircle },
+                       warning: { color: 'text-rose-500', bg: 'bg-rose-500/10', icon: AlertTriangle }
+                     };
+                     const config = typeStyles[n.type] || typeStyles.info;
+                     const Icon = config.icon;
+
+                     return (
+                       <motion.div 
+                         key={idx} 
+                         initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}
+                         className="p-5 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800 group hover:border-primary/20 transition-all hover:shadow-sm"
+                       >
+                          <div className="flex justify-between items-start mb-3">
+                             <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${config.bg} ${config.color} shadow-inner`}>
+                                   <Icon size={14} />
+                                </div>
+                                <h3 className={`text-sm font-black uppercase tracking-tight ${config.color}`}>{n.title}</h3>
+                             </div>
+                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                {n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : 'RECENT'}
+                             </span>
+                          </div>
+                          <p className="text-xs font-medium text-slate-600 dark:text-slate-400 leading-relaxed pl-10 italic">"{n.message}"</p>
+                       </motion.div>
+                     );
+                   })}
+
                    {notifications.length === 0 && (
                      <div className="text-center py-20 opacity-20">
                         <Bell size={64} className="mx-auto mb-4" />
