@@ -254,7 +254,29 @@ export const generateHealthReport = async (data) => {
         const safeName = (userName || 'Patient').replace(/[^a-z0-9]/gi, '_');
         const finalFilename = `HealthSync_Report_${safeDisease}_${safeName}_${timeId}.pdf`;
         
-        pdf.save(finalFilename);
+        // CRITICAL CHROME FIX: 
+        // 1. Output as 'arraybuffer' and manually construct the Blob to force strict MIME type checking.
+        // 2. Delay URL revocation. If revokeObjectURL is called synchronously, Chrome often aborts 
+        //    the stream and downloads a generic UUID-named file instead of the actual PDF.
+        const pdfOutput = pdf.output('arraybuffer');
+        const pdfBlob = new Blob([pdfOutput], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        
+        const link = document.createElement('a');
+        link.style.display = 'none';
+        link.href = blobUrl;
+        link.download = finalFilename;
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        // Give Chrome's download manager time to capture the stream before cleanup
+        setTimeout(() => {
+            if (document.body.contains(link)) {
+                document.body.removeChild(link);
+            }
+            URL.revokeObjectURL(blobUrl);
+        }, 500);
 
     } catch (err) {
         console.error("Report Generation Failure:", err);
