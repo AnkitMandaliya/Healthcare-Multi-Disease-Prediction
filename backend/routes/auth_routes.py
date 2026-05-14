@@ -10,6 +10,7 @@ import logging
 import traceback
 from twilio.rest import Client
 from datetime import datetime, timedelta, timezone
+import threading
 
 auth_bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
@@ -229,6 +230,18 @@ def dispatch_otp(user, preferred_channel=None):
         is_phone_used = preferred_channel and clean_pref.isdigit() and len(clean_pref) >= 10
         is_email_used = preferred_channel and "@" in preferred_channel
         
+        # Wrap email sending in a thread to prevent blocking the worker
+        def send_async_email(app_context, message):
+            with app_context:
+                try:
+                    mail.send(message)
+                    logger.info("[MAIL-SUCCESS] Background transmission complete.")
+                except Exception as e:
+                    logger.error(f"[MAIL-FAILURE] Background transmission failed: {str(e)}")
+
+        from flask import current_app
+        app_context = current_app.app_context()
+
         # Priority 1: Preferred Phone Channel (SMS)
         if is_phone_used and user.get("phone"):
             account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
@@ -250,7 +263,7 @@ def dispatch_otp(user, preferred_channel=None):
                 recipients=[user["email"]],
                 body=f"SECURITY ALERT: Verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
             )
-            mail.send(msg)
+            threading.Thread(target=send_async_email, args=(app_context, msg)).start()
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
 
         # Final Fallback: Send to whatever primary communication vector the node has
@@ -260,7 +273,7 @@ def dispatch_otp(user, preferred_channel=None):
                 recipients=[user["email"]],
                 body=f"SECURITY ALERT: Fallback verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
             )
-            mail.send(msg)
+            threading.Thread(target=send_async_email, args=(app_context, msg)).start()
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
         elif user.get("phone"):
             # SMS logic again (Fallback)
