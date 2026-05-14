@@ -313,7 +313,7 @@ const Predict = () => {
               className="space-y-8"
             >
               <div className="space-y-2">
-                <h2 className="text-xl font-bold dark:text-white">Choose Diagnostic Focus</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Choose Diagnostic Focus</h2>
                 <p className="text-sm text-slate-500 leading-relaxed">Select the clinical model cluster specialized for your analysis goals.</p>
               </div>
               
@@ -332,7 +332,7 @@ const Predict = () => {
                       <d.icon size={20} className="sm:w-[32px] sm:h-[32px]" />
                     </div>
                     <div className="text-center">
-                      <h4 className="font-bold dark:text-white text-sm sm:text-lg">{d.name}</h4>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm sm:text-lg">{d.name}</h4>
                       <p className="text-[7px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5 sm:mt-1">Verified v1.0</p>
                     </div>
                   </button>
@@ -366,7 +366,7 @@ const Predict = () => {
                    <selectedDisease.icon size={28} />
                 </div>
                 <div>
-                   <h3 className="text-2xl font-black dark:text-white tracking-tight uppercase">{selectedDisease.name} Biometrics</h3>
+                   <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">{selectedDisease.name} Biometrics</h3>
                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Session Protocol #AI-HEALTH-99</p>
                 </div>
               </div>
@@ -395,7 +395,7 @@ const Predict = () => {
                              onChange={handleInputChange}
                              options={field.options}
                              placeholder="Select Option..."
-                             className={`w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent rounded-xl p-4 focus:ring-4 focus:ring-primary/10 focus:border-primary dark:text-white outline-none transition-all ${errors[field.name] ? 'border-red-500/50 bg-red-50/5' : ''}`}
+                             className={`w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent rounded-xl p-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-slate-900 dark:text-white outline-none transition-all ${errors[field.name] ? 'border-red-500/50 bg-red-50/5' : ''}`}
                           />
                        ) : (
                           <div className="relative group">
@@ -408,7 +408,7 @@ const Predict = () => {
                                value={formData[field.name] || ''} 
                                onChange={handleInputChange} 
                                placeholder={field.placeholder} 
-                               className={`w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent rounded-xl p-4 focus:ring-4 focus:ring-primary/10 focus:border-primary dark:text-white outline-none transition-all ${errors[field.name] ? 'border-red-500/50 bg-red-50/5' : ''}`} 
+                               className={`w-full bg-slate-50 dark:bg-slate-800/50 border-2 border-transparent rounded-xl p-4 focus:ring-4 focus:ring-primary/10 focus:border-primary text-slate-900 dark:text-white outline-none transition-all ${errors[field.name] ? 'border-red-500/50 bg-red-50/5' : ''}`} 
                             />
                             {field.name.toLowerCase() === 'bmi' && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase text-slate-400">Index</span>}
                           </div>
@@ -420,7 +420,7 @@ const Predict = () => {
               </div>
 
               <div className="flex gap-4 pt-10 border-t border-slate-100 dark:border-slate-800">
-                <button onClick={handleBack} className="flex-1 h-14 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-white font-bold flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                <button onClick={handleBack} className="flex-1 h-14 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-bold flex items-center justify-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
                    <ArrowLeft size={18} /> Back
                 </button>
                 <button 
@@ -469,7 +469,7 @@ const Predict = () => {
                     <CheckCircle2 size={40} />
                  </motion.div>
                  <span className="px-5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-[0.3em] border border-emerald-500/20">Analysis Complete</span>
-                 <h2 className="text-3xl font-black dark:text-white uppercase tracking-tight mt-6 leading-none">{result.prediction}</h2>
+                 <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tight mt-6 leading-none">{result.prediction}</h2>
               </div>
 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start px-4">
@@ -487,13 +487,13 @@ const Predict = () => {
                           />
                        </svg>
                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-4xl font-black dark:text-white">{(result.probability * 100).toFixed(0)}%</span>
+                          <span className="text-4xl font-black text-slate-900 dark:text-white">{(result.probability * 100).toFixed(0)}%</span>
                           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">AI Confidence</span>
                        </div>
                     </div>
                     <div className="mt-8 flex items-center gap-3 px-6 py-2 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none">
                        <AlertTriangle size={20} className={result.risk_level === 'High' ? 'text-red-500' : 'text-amber-500'} />
-                       <span className="text-sm font-black uppercase tracking-widest dark:text-white">{result.risk_level} Health Risk</span>
+                       <span className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">{result.risk_level} Health Risk</span>
                     </div>
                  </div>
 
@@ -512,7 +512,7 @@ const Predict = () => {
                              className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 flex flex-col gap-3"
                           >
                              <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black dark:text-white uppercase tracking-tight">{item.feature}</span>
+                                <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">{item.feature}</span>
                                 <span className={`text-[10px] font-mono font-bold ${item.impact > 0 ? 'text-primary' : 'text-emerald-500'}`}>
                                    {item.impact > 0 ? '+' : '-'}{Math.abs(item.impact).toFixed(2)}
                                 </span>
@@ -583,7 +583,7 @@ const Predict = () => {
                     <Sparkles size={24} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black dark:text-white uppercase tracking-tight">Gemini AI Advisory</h3>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Gemini AI Advisory</h3>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">Analyzing Health Metric Trajectory</p>
                   </div>
                 </div>
@@ -602,9 +602,9 @@ const Predict = () => {
                   <div className="prose prose-sm dark:prose-invert max-w-none font-medium leading-relaxed prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-a:text-primary">
                       {(adviceLevel === 'flash' ? aiAdvice.quick : aiAdvice.detailed)?.split('\n')?.map((line, index) => {
                         if (line.trim().startsWith('##')) {
-                         return <h3 key={index} className="text-lg font-black uppercase tracking-tight mt-6 mb-3 text-primary dark:text-white">{line.replace('##', '').trim()}</h3>;
+                         return <h3 key={index} className="text-lg font-black uppercase tracking-tight mt-6 mb-3 text-primary">{line.replace('##', '').trim()}</h3>;
                         }
-                        return <p key={index} className="mb-2 dark:text-white/90">{line.replace(/\*\*(.*?)\*\*/g, '$1')}</p>;
+                        return <p key={index} className="mb-2 text-slate-700 dark:text-white/90">{line.replace(/\*\*(.*?)\*\*/g, '$1')}</p>;
                       })}
                   </div>
                 )}

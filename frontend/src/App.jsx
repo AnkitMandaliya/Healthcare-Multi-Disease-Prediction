@@ -38,7 +38,7 @@ const AuthenticatedLayout = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#F6F6F8] dark:bg-[#111621] transition-colors duration-300 overflow-hidden">
+    <div className="flex h-screen bg-slate-100 dark:bg-[#0B0F1A] transition-colors duration-300 overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 h-full">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />

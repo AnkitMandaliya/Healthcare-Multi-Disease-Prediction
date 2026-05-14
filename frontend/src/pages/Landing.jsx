@@ -25,7 +25,7 @@ const Landing = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#111621] font-sans text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-100 dark:bg-[#111621] font-sans text-slate-900 dark:text-slate-100 transition-colors duration-300">
       {/* Sticky Navigation */}
       <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-white/80 dark:bg-[#111621]/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
@@ -90,7 +90,7 @@ const Landing = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-400 md:text-xl leading-relaxed"
+              className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 dark:text-slate-500 md:text-xl leading-relaxed"
             >
               Data-driven early diagnosis powered by machine learning models trained on over 1.2 billion clinical data points.
             </motion.p>
@@ -119,48 +119,48 @@ const Landing = () => {
             <div className="mb-16 flex flex-col items-start gap-4 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl">
                 <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white md:text-4xl">Advanced AI Diagnostic Tools</h2>
-                <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">Empowering healthcare providers through high-fidelity machine learning and real-time biometric analysis.</p>
+                <p className="mt-4 text-lg text-slate-600 dark:text-slate-500">Empowering healthcare providers through high-fidelity machine learning and real-time biometric analysis.</p>
               </div>
             </div>
             
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-100 bg-[#f6f6f8] p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
+              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-100 p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                   <Brain size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">AI Accuracy Engine</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">High-precision neural models refined through billions of validated clinical cases.</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-500">High-precision neural models refined through billions of validated clinical cases.</p>
                 </div>
               </div>
               
-              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-100 bg-[#f6f6f8] p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
+              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-100 p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                   <TrendingUp size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">Real-Time Risk</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">Instant feedback on health indicators with millisecond processing latency.</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-500">Instant feedback on health indicators with millisecond processing latency.</p>
                 </div>
               </div>
 
-              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-100 bg-[#f6f6f8] p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
+              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-100 p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                   <ShieldCheck size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">Secure Data</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">Enterprise-grade AES-256 encryption and HIPAA-compliant data storage protocols.</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-500">Enterprise-grade AES-256 encryption and HIPAA-compliant data storage protocols.</p>
                 </div>
               </div>
 
-              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-100 bg-[#f6f6f8] p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
+              <div className="group relative flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-100 p-8 transition-all hover:-translate-y-1 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                   <Award size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white">Smart Insights</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">Personalized health recommendations tailored to individual genetic markers.</p>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-500">Personalized health recommendations tailored to individual genetic markers.</p>
                 </div>
               </div>
             </div>
@@ -168,7 +168,7 @@ const Landing = () => {
         </section>
 
         {/* Trust & Stats Section */}
-        <section id="accuracy" className="py-24 bg-[#f6f6f8] dark:bg-[#111621] transition-colors duration-300">
+        <section id="accuracy" className="py-24 bg-slate-100 dark:bg-[#111621] transition-colors duration-300">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col gap-16 lg:flex-row lg:items-center">
               <div className="lg:w-1/2">
@@ -179,21 +179,21 @@ const Landing = () => {
                 <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white md:text-5xl lg:leading-tight">
                   Industry-Leading <br/><span className="text-primary">Medical Accuracy</span>
                 </h2>
-                <p className="mt-6 text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="mt-6 text-lg text-slate-600 dark:text-slate-500 leading-relaxed">
                   Our platform adheres to the highest medical standards, using a WHO-style reference layout for data validation and cross-referencing against global health benchmarks.
                 </p>
                 <div className="mt-10 flex flex-wrap gap-8">
                   <div className="flex flex-col gap-1">
                     <span className="text-3xl font-black text-primary">99.8%</span>
-                    <span className="text-sm font-medium text-slate-500">Model Accuracy</span>
+                    <span className="text-sm font-medium text-slate-600">Model Accuracy</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-3xl font-black text-primary">1.2B+</span>
-                    <span className="text-sm font-medium text-slate-500">Data Points Analyzed</span>
+                    <span className="text-sm font-medium text-slate-600">Data Points Analyzed</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-3xl font-black text-primary">500+</span>
-                    <span className="text-sm font-medium text-slate-500">Partner Clinics</span>
+                    <span className="text-sm font-medium text-slate-600">Partner Clinics</span>
                   </div>
                 </div>
               </div>
@@ -205,7 +205,7 @@ const Landing = () => {
                       <TrendingUp className="text-primary" />
                       <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">+0.2%</span>
                     </div>
-                    <h4 className="text-slate-500 text-sm font-medium">Diagnostic Precision</h4>
+                    <h4 className="text-slate-600 text-sm font-medium">Diagnostic Precision</h4>
                     <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">99.85%</p>
                     <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div className="h-full w-[99%] bg-primary"></div>
@@ -217,7 +217,7 @@ const Landing = () => {
                       <Activity className="text-primary" />
                       <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">+15%</span>
                     </div>
-                    <h4 className="text-slate-500 text-sm font-medium">Dataset Expansion</h4>
+                    <h4 className="text-slate-600 text-sm font-medium">Dataset Expansion</h4>
                     <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">1.24B</p>
                     <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div className="h-full w-[85%] bg-primary"></div>
@@ -231,7 +231,7 @@ const Landing = () => {
                           <Stethoscope size={24} className="text-primary" />
                         </div>
                         <div>
-                          <h4 className="text-slate-500 text-sm font-medium">Global Network</h4>
+                          <h4 className="text-slate-600 text-sm font-medium">Global Network</h4>
                           <p className="text-xl font-bold text-slate-900 dark:text-white">528 Partner Clinics</p>
                         </div>
                       </div>

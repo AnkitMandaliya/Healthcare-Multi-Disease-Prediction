@@ -219,7 +219,7 @@ const Dashboard = () => {
           <motion.div variants={itemVariants} className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-2xl p-3 md:p-8 rounded-2xl md:rounded-[3rem] border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none relative overflow-hidden isolate">
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 md:gap-6 mb-4 md:mb-10 relative z-10">
               <div>
-                 <h4 className="font-black text-sm md:text-2xl dark:text-white uppercase tracking-tight">Diagnostic Flow Dynamics</h4>
+                 <h4 className="font-black text-sm md:text-2xl text-slate-900 dark:text-white uppercase tracking-tight">Diagnostic Flow Dynamics</h4>
                  <p className="text-[8px] md:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5 md:mt-1">Real-time prediction throughput vs critical events</p>
               </div>
               <div className="flex flex-wrap items-center gap-2 md:gap-6 bg-slate-50/50 dark:bg-white/5 p-2 md:p-4 rounded-xl md:rounded-3xl border border-slate-100 dark:border-white/5 shadow-inner">
@@ -286,7 +286,7 @@ const Dashboard = () => {
              {/* Risk Distribution Bento Card */}
              <div className="bg-white dark:bg-slate-900/60 p-3 md:p-10 rounded-xl md:rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-xl">
                 <div className="flex items-center justify-between mb-4 md:mb-8">
-                   <h4 className="font-black text-sm md:text-lg dark:text-white uppercase tracking-tight">Risk Stratification</h4>
+                   <h4 className="font-black text-sm md:text-lg text-slate-900 dark:text-white uppercase tracking-tight">Risk Stratification</h4>
                    <AlertTriangle className="text-slate-200 dark:text-slate-800 w-4 h-4 md:w-6 md:h-6" />
                 </div>
                 <div className="flex flex-col items-center">
@@ -301,7 +301,7 @@ const Dashboard = () => {
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                         <span className="text-xl md:text-4xl font-black dark:text-white leading-none tracking-tighter">{pieData[1]?.value || 0}%</span>
+                         <span className="text-xl md:text-4xl font-black text-slate-900 dark:text-white leading-none tracking-tighter">{pieData[1]?.value || 0}%</span>
                          <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5 md:mt-1">HIGH RISK</span>
                       </div>
                    </div>
@@ -312,7 +312,7 @@ const Dashboard = () => {
                                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" style={{backgroundColor: COLORS[i]}}></div>
                                <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.name}</span>
                             </div>
-                            <span className="text-sm md:text-xl font-black dark:text-white">{item.value}%</span>
+                            <span className="text-sm md:text-xl font-black text-slate-900 dark:text-white">{item.value}%</span>
                          </div>
                       ))}
                    </div>
@@ -322,7 +322,7 @@ const Dashboard = () => {
              {/* Clinical Importance Bento Card */}
              <div className="bg-white dark:bg-slate-900/60 p-3 md:p-10 rounded-xl md:rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-xl">
                 <div className="flex items-center justify-between mb-4 md:mb-8">
-                   <h4 className="font-black text-sm md:text-lg dark:text-white uppercase tracking-tight">Neural Priority</h4>
+                   <h4 className="font-black text-sm md:text-lg text-slate-900 dark:text-white uppercase tracking-tight">Neural Priority</h4>
                    <Zap className="text-slate-200 dark:text-slate-800 w-4 h-4 md:w-6 md:h-6" />
                 </div>
                 <div className="space-y-3 md:space-y-8">
@@ -331,7 +331,7 @@ const Dashboard = () => {
                          <div className="flex justify-between items-end">
                              <div className="space-y-0.5 md:space-y-1">
                                 <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">P-VALUE {idx + 1}</span>
-                                <h5 className="text-[10px] md:text-xs font-bold dark:text-white uppercase tracking-tight">{item.name}</h5>
+                                <h5 className="text-[10px] md:text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">{item.name}</h5>
                              </div>
                              <span className="text-xs md:text-sm font-black text-primary">{item.value}%</span>
                          </div>
@@ -410,7 +410,7 @@ const Dashboard = () => {
            {/* System Announcements */}
            <div className="bg-white dark:bg-slate-900/60 p-3 md:p-8 rounded-xl md:rounded-[3rem] border border-slate-100 dark:border-white/5 shadow-xl">
               <div className="flex items-center justify-between mb-3 md:mb-8">
-                 <h4 className="font-black text-[10px] md:text-sm dark:text-white uppercase tracking-widest text-slate-400">Broadcast Log</h4>
+                 <h4 className="font-black text-[10px] md:text-sm text-slate-900 dark:text-white uppercase tracking-widest">Broadcast Log</h4>
                  <div className="flex items-center gap-1 md:gap-2">
                     <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-rose-500 rounded-full animate-ping"></div>
                     <span className="text-[8px] md:text-[10px] font-black text-rose-500 uppercase tracking-widest">LIVE</span>

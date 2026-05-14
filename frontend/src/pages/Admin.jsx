@@ -153,7 +153,7 @@ const Admin = () => {
     >
       <div>
         <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5 sm:mb-1">{title}</p>
-        <h3 className="text-xl sm:text-3xl font-black dark:text-white tabular-nums group-hover:text-primary transition-colors leading-none">{value}</h3>
+        <h3 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums group-hover:text-primary transition-colors leading-none">{value}</h3>
         <p className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-tight mt-1">{subtitle}</p>
       </div>
       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${color} flex items-center justify-center text-white shadow-lg group-hover:rotate-12 transition-transform`}>
@@ -168,7 +168,7 @@ const Admin = () => {
       {/* Header Overlay */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900/50 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm backdrop-blur-xl">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black dark:text-white uppercase tracking-tighter leading-none">Command Hub</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">Command Hub</h1>
           <p className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-1.5 sm:mt-2 flex items-center">
              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full mr-2 sm:mr-3 animate-pulse"></div>
              Security Tier: Level 3 Administrator 
@@ -216,7 +216,7 @@ const Admin = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden h-fit">
                  <div className="px-6 py-5 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
-                    <h2 className="text-xl font-black dark:text-white uppercase tracking-tight">Recent Activity Stream</h2>
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Recent Activity Stream</h2>
                     <Activity className="text-primary" size={20} />
                  </div>
                  <div className="p-4 space-y-3 overflow-y-auto max-h-[400px] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full pr-2">
@@ -233,7 +233,7 @@ const Admin = () => {
                                <Activity size={18} />
                             </div>
                             <div>
-                               <p className="text-xs font-black dark:text-white uppercase tracking-tight">{p.disease}</p>
+                               <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{p.disease}</p>
                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.email}</p>
                             </div>
                          </div>
@@ -252,7 +252,7 @@ const Admin = () => {
               </div>
 
               <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl p-6 h-fit">
-                 <h2 className="text-xl font-black dark:text-white uppercase tracking-tight mb-6 mt-2 text-center">Neural Load Distribution</h2>
+                 <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6 mt-2 text-center">Neural Load Distribution</h2>
                  <div className="space-y-6 overflow-y-auto max-h-[400px] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb]:rounded-full pr-2">
                     {dashboardData.spread.map((item, idx) => (
                       <motion.div 
@@ -290,7 +290,7 @@ const Admin = () => {
           >
             <div className="px-6 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
                <div>
-                 <h2 className="text-xl font-black dark:text-white uppercase tracking-tight">
+                 <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
                     {activeTab === 'users' ? 'Clinician Registry' : 'Neural Inference Logs'}
                     <span className="ml-3 text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md">
                        {(activeTab === 'users' ? users : inferences).length} Nodes ({diseaseFilter}/{riskFilter})
@@ -306,7 +306,7 @@ const Admin = () => {
                       placeholder={`Live search ${activeTab}...`} 
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-black uppercase outline-none focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-slate-300" 
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800/20 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-black uppercase outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-900 dark:text-white placeholder:text-slate-300" 
                     />
                   </div>
                   
@@ -399,7 +399,7 @@ const Admin = () => {
                                  {u.name.substring(0,1)}
                               </div>
                               <div>
-                                 <p className="text-xs font-black dark:text-white uppercase tracking-tight">{u.name}</p>
+                                 <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{u.name}</p>
                                  <p className="text-[9px] font-bold text-slate-500 lowercase tracking-tight">{u.email}</p>
                               </div>
                            </div>
@@ -443,7 +443,7 @@ const Admin = () => {
                          className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all font-medium"
                        >
                          <td className="px-6 py-4">
-                           <p className="text-xs font-black dark:text-white uppercase tracking-tight">{inf.disease}</p>
+                           <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{inf.disease}</p>
                            <p className="text-[9px] font-bold text-slate-400 lowercase">{inf.email}</p>
                          </td>
                          <td className="px-4 py-4">
@@ -491,13 +491,13 @@ const Admin = () => {
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:rotate-12 group-hover:scale-110 transition-all duration-700 pointer-events-none">
                    <Bell size={120} />
                 </div>
-                <h2 className="text-xl font-black dark:text-white uppercase tracking-tight mb-6 relative">Global Broadcast</h2>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6 relative">Global Broadcast</h2>
                 <form onSubmit={sendAnnouncement} className="space-y-6 relative">
                    <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Protocol Title</label>
                       <input 
                         required 
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl text-xs font-black dark:text-white focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:opacity-30"
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:opacity-30"
                         placeholder="Neural Cluster Update..."
                         value={newNotice.title}
                         onChange={(e) => setNewNotice({...newNotice, title: e.target.value})}
@@ -508,7 +508,7 @@ const Admin = () => {
                       <textarea 
                         required 
                         rows={5}
-                        className="w-full p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl text-xs font-black dark:text-white focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:opacity-30"
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl text-xs font-black text-slate-900 dark:text-white focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:opacity-30"
                         placeholder="Security protocols initialized..."
                         value={newNotice.message}
                         onChange={(e) => setNewNotice({...newNotice, message: e.target.value})}
@@ -538,7 +538,7 @@ const Admin = () => {
              </div>
 
              <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xl overflow-y-auto max-h-[750px] custom-scrollbar">
-                <h2 className="text-xl font-black dark:text-white uppercase tracking-tight mb-6">Broadcast Log</h2>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6">Broadcast Log</h2>
                 <div className="space-y-4">
                    {notifications.map((n, idx) => {
                      const typeStyles = {
@@ -605,7 +605,7 @@ const Admin = () => {
 
             <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden p-10 flex flex-col md:flex-row gap-12 items-center">
                <div className="flex-1 space-y-4">
-                  <h2 className="text-2xl font-black dark:text-white uppercase tracking-tighter">AI Node Orchestration</h2>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">AI Node Orchestration</h2>
                   <p className="text-sm text-slate-500 leading-relaxed font-medium">Select the primary clinical inference engine for the entire diagnostic network. Free-tier models may experience varying latency and quota limits.</p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
@@ -631,7 +631,7 @@ const Admin = () => {
                            <span className={`text-[9px] font-black uppercase tracking-widest ${activeModel === m.id ? 'text-primary' : 'text-slate-400'}`}>
                              {activeModel === m.id ? "PRIMARY NODE ACTIVE" : "AVAILABLE CLUSTER"}
                            </span>
-                           <h4 className="text-md font-black dark:text-white uppercase tracking-tight">{m.name}</h4>
+                           <h4 className="text-md font-black text-slate-900 dark:text-white uppercase tracking-tight">{m.name}</h4>
                            <p className="text-[10px] font-bold text-slate-500 group-hover:text-slate-700 transition-colors">{m.id}</p>
                         </button>
                      ))}
@@ -643,7 +643,7 @@ const Admin = () => {
                      <Database size={40} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black dark:text-white uppercase tracking-tight">Fleet Health</h3>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Fleet Health</h3>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Real-time Node Monitoring</p>
                   </div>
                   <div className="w-full space-y-4">
@@ -695,7 +695,7 @@ const Admin = () => {
                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                   <Trash2 size={32} />
                </div>
-               <h3 className="text-xl font-black dark:text-white uppercase tracking-tight mb-2">Protocol Decommission</h3>
+               <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Protocol Decommission</h3>
                <p className="text-xs text-slate-500 font-medium leading-relaxed mb-8">This action will permanently wipe this clinician's neural access node. This registry purge is irreversible.</p>
                <div className="flex gap-4">
                   <button 

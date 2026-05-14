@@ -423,7 +423,7 @@ const Auth = () => {
                              <input 
                                 type="text" 
                                 required 
-                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
                                 placeholder="Dr. Jane Doe"
                                 value={formData.name}
                                 onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -441,7 +441,7 @@ const Auth = () => {
                               <input 
                                  type="text" 
                                  required={isLogin} 
-                                 className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                 className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
                                  placeholder={isLogin ? "email@health.com / 91xxxxxx" : "node@healthai.com"}
                                  value={formData.email}
                                  onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -458,7 +458,7 @@ const Auth = () => {
                                  <input 
                                     type="text" 
                                     required={!formData.email}
-                                    className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[4.5rem] pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                    className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[4.5rem] pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
                                     placeholder="00000 00000"
                                     value={formData.phone}
                                     onChange={handlePhoneChange}
@@ -474,7 +474,7 @@ const Auth = () => {
                               <input 
                                  type={showPassword ? "text" : "password"}
                                  required 
-                                 className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                 className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
                                  placeholder="••••••••"
                                  value={formData.password}
                                  onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -506,7 +506,7 @@ const Auth = () => {
                                    type="text" 
                                    required 
                                    maxLength="6"
-                                   className="w-full h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-2xl font-black tracking-[0.5em] focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-inner"
+                                   className="w-full h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-2xl font-black tracking-[0.5em] focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-inner"
                                    placeholder="000000"
                                    value={formData.otp}
                                    onChange={(e) => setFormData({...formData, otp: e.target.value.replace(/\D/g, '')})}
@@ -546,7 +546,7 @@ const Auth = () => {
                                        { value: "clinician", label: "Clinician" },
                                        { value: "patient", label: "Patient" }
                                      ]}
-                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[3.5rem] pr-4 text-sm font-bold outline-none transition-all dark:text-white shadow-sm"
+                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[3.5rem] pr-4 text-sm font-bold outline-none transition-all text-slate-900 dark:text-white shadow-sm"
                              />
                           </div>
                        </div>
@@ -566,7 +566,7 @@ const Auth = () => {
                                 <input 
                                    type="email" 
                                    disabled={!!formData.phone}
-                                   className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm disabled:opacity-20"
+                                   className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm disabled:opacity-20"
                                    placeholder="node@healthai.com"
                                    value={formData.email}
                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -587,7 +587,7 @@ const Auth = () => {
                                 <input 
                                    type="text" 
                                    disabled={!!formData.email}
-                                   className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[4.5rem] pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm disabled:opacity-20"
+                                   className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-[4.5rem] pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm disabled:opacity-20"
                                    placeholder="00000 00000"
                                    value={formData.phone}
                                    onChange={handlePhoneChange}
@@ -623,7 +623,7 @@ const Auth = () => {
                                    type="text" 
                                    required 
                                    maxLength="6"
-                                   className="w-full h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-2xl font-black tracking-[0.5em] focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-inner"
+                                   className="w-full h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-2xl font-black tracking-[0.5em] focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-inner"
                                    placeholder="000000"
                                    value={formData.otp}
                                    onChange={(e) => setFormData({...formData, otp: e.target.value.replace(/\D/g, '')})}
@@ -653,7 +653,7 @@ const Auth = () => {
                              <input 
                                 type={showPassword ? "text" : "password"}
                                 required 
-                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white shadow-sm"
+                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={(e) => setFormData({...formData, password: e.target.value})}

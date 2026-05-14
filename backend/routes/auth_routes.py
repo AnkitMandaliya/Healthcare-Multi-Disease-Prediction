@@ -87,8 +87,9 @@ def login():
                 password_valid = False
                 
         if user and password_valid:
-            # Test user OTP bypass (Forced to True to disable OTP functionality)
-            if True: # user bypass logic maintained below for future reactivation
+            # Production-Grade OTP Verification Flow
+            skip_otp = os.environ.get("SKIP_OTP_USER") == user["email"]
+            if skip_otp: 
                 role_data = mongo.db.roles.find_one({"name": user["role"]})
                 permissions = role_data.get("permissions", []) if role_data else []
                 access_token = create_access_token(

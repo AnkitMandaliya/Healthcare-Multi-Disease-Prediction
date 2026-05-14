@@ -113,7 +113,7 @@ const Roles = () => {
              <Shield className="text-primary sm:w-[32px] sm:h-[32px]" size={24} />
              Access Control
           </h1>
-          <p className="mt-1 sm:mt-2 text-[10px] sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Manage enterprise roles and granular diagnostic permissions.</p>
+          <p className="mt-1 sm:mt-2 text-[10px] sm:text-sm text-slate-600 dark:text-slate-500 font-medium">Manage enterprise roles and granular diagnostic permissions.</p>
         </div>
 
         <button 
@@ -149,7 +149,7 @@ const Roles = () => {
                    key={role.name}
                    initial={{ opacity: 0, scale: 0.98 }}
                    animate={{ opacity: 1, scale: 1 }}
-                   className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group"
+                   className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group"
                  >
                      <div className="flex justify-between items-start mb-3 sm:mb-4">
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -158,7 +158,7 @@ const Roles = () => {
                           </div>
                           <div>
                              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white capitalize leading-none">{role.name}</h3>
-                             <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-1 sm:mt-1.5">Tier Level Access</p>
+                             <p className="text-[8px] sm:text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1 sm:mt-1.5">Tier Level Access</p>
                           </div>
                         </div>
 
@@ -192,7 +192,7 @@ const Roles = () => {
                           </span>
                        ))}
                        {role.permissions.length === 0 && (
-                          <span className="text-xs text-slate-400 italic">No operational permissions granted</span>
+                          <span className="text-xs text-slate-500 italic">No operational permissions granted</span>
                        )}
                     </div>
                  </motion.div>
@@ -213,14 +213,14 @@ const Roles = () => {
                    <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white uppercase tracking-tight">
                       {editingRole ? 'Modify Protocol' : 'Create Protocol'}
                    </h3>
-                   <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                   <button onClick={() => setIsFormOpen(false)} className="text-slate-500 hover:text-slate-600 dark:hover:text-slate-200">
                      <X size={20} />
                    </button>
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-6">
                    <div>
-                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Role Name</label>
+                     <label className="block text-xs font-bold text-slate-600 uppercase tracking-widest mb-2">Role Name</label>
                      <input 
                        type="text" 
                        required
@@ -230,11 +230,11 @@ const Roles = () => {
                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all disabled:opacity-50 text-slate-900 dark:text-white uppercase"
                        placeholder="e.g. Cardiologist"
                      />
-                     {editingRole && <p className="text-[10px] text-slate-400 mt-1 italic">Role identifiers cannot be modified after compilation.</p>}
+                     {editingRole && <p className="text-[10px] text-slate-500 mt-1 italic">Role identifiers cannot be modified after compilation.</p>}
                    </div>
 
                    <div>
-                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Clearance Flags</label>
+                     <label className="block text-xs font-bold text-slate-600 uppercase tracking-widest mb-3">Clearance Flags</label>
                      <div className="space-y-3">
                         {ALL_PERMISSIONS.map(perm => {
                            const isChecked = formData.permissions.includes(perm.id);
@@ -245,7 +245,7 @@ const Roles = () => {
                                className={`flex items-start gap-4 p-3 rounded-xl border cursor-pointer transition-all ${
                                  isChecked 
                                    ? 'bg-primary/5 border-primary/30 dark:bg-primary/10 dark:border-primary/50' 
-                                   : 'bg-transparent border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                   : 'bg-transparent border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                                }`}
                              >
                                 <div className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center transition-colors ${
@@ -257,7 +257,7 @@ const Roles = () => {
                                    <p className={`font-bold text-sm tracking-tight ${isChecked ? 'text-primary dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'}`}>
                                       {perm.label}
                                    </p>
-                                   <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{perm.desc}</p>
+                                   <p className="text-[10px] text-slate-600 mt-0.5 leading-relaxed">{perm.desc}</p>
                                 </div>
                              </div>
                            );

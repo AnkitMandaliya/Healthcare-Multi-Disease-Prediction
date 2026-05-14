@@ -55,13 +55,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="p-5 sm:p-8 flex items-center gap-3 sm:gap-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2"
+          className="p-5 sm:p-8 flex items-center gap-3 sm:gap-4 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/2"
         >
           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3">
              <Activity className="text-white sm:w-[24px] sm:h-[24px]" size={20} />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-black dark:text-white tracking-tighter uppercase leading-none">Health<span className="text-primary">AI</span></h1>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Health<span className="text-primary">AI</span></h1>
             <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 sm:mt-1.5">Neural Cluster v3.1</p>
           </div>
         </motion.div>
@@ -134,7 +134,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Bottom Section */}
-        <div className="p-6 mt-auto relative z-10 border-t border-slate-100 dark:border-slate-800">
+        <div className="p-6 mt-auto relative z-10 border-t border-slate-200 dark:border-slate-800">
           <div className="p-4 sm:p-6 mb-4 sm:mb-8 bg-primary/5 rounded-2xl sm:rounded-3xl border border-primary/10 mx-4 sm:mx-6">
              <div className="flex items-center gap-3 sm:gap-4">
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white dark:bg-slate-800 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm">
@@ -142,7 +142,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                    <p className="text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-widest leading-none">Diagnostic Node</p>
-                   <p className="text-xs sm:text-sm font-bold dark:text-white mt-1">L-4 Precision Cluster</p>
+                   <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mt-1">L-4 Precision Cluster</p>
                 </div>
              </div>
           </div>
@@ -159,8 +159,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                     <img src={user.avatar} alt={user.name} className="w-11 h-11 rounded-xl object-cover border-2 border-primary/20 shadow-lg group-hover:border-primary transition-colors" />
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#111621]"></div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-black text-slate-900 dark:text-white truncate tracking-tight">{user.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-black text-slate-900 dark:text-white truncate tracking-tight group-hover:whitespace-normal transition-all">{user.name}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                        <span className="text-[8px] text-primary font-black uppercase tracking-[0.2em]">{user.role || 'Clinician'}</span>
                     </div>

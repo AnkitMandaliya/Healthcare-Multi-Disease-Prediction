@@ -11,7 +11,7 @@ const Footer = () => {
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                 <Microscope size={24} />
               </div>
-              <h2 className="font-bold text-xl tracking-tight dark:text-white">HealthAI</h2>
+              <h2 className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">HealthAI</h2>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
               Pioneering the future of predictive healthcare through ethical AI and clinical excellence.

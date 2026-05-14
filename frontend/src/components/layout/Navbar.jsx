@@ -78,7 +78,7 @@ const Navbar = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/70 dark:bg-[#0B0F1A]/70 backdrop-blur-xl border-b border-slate-100 dark:border-white/5 px-4 sm:px-8 py-3 sm:py-4 transition-all duration-500">
+    <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#111621]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 sm:px-8 py-3 sm:py-4 transition-all duration-500">
       <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
         <button 
           onClick={onMenuClick}
@@ -125,7 +125,7 @@ const Navbar = ({ onMenuClick }) => {
               >
                 <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                   <div>
-                    <h4 className="font-black text-sm dark:text-white uppercase tracking-tight">System Alerts</h4>
+                    <h4 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">System Alerts</h4>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Operational Nodes: High Priority</p>
                   </div>
                   <span className="text-[10px] font-black bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-widest animate-pulse">Live</span>

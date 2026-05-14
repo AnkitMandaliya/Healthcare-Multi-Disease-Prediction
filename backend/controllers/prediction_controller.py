@@ -193,15 +193,15 @@ class PredictionController:
 
         # 1. Fetch Selected Model from Settings
         settings = mongo.db.settings.find_one({"id": "ai_config"})
-        active_model = settings.get("active_model") if settings else "models/gemini-flash-latest"
+        active_model = settings.get("active_model") if settings else "gemini-1.5-flash"
 
         client = genai.Client(api_key=api_key)
         
         # Build combined prompt
         prompt = self._build_prompt(data)
 
-        # Try active model first, then fallbacks
-        models_to_try = [active_model, 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp']
+        # Try active model first, then fallbacks (Modern 2026 Fleet)
+        models_to_try = [active_model, 'models/gemini-2.5-flash', 'models/gemini-2.0-flash', 'models/gemini-flash-latest']
         
         last_error = ""
         for model_name in models_to_try:
