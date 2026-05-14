@@ -225,6 +225,13 @@ def dispatch_otp(user, preferred_channel=None):
             }},
             upsert=True
         )
+
+        # DEBUG: Log OTP to console for easy access if email fails
+        print(f"--- [SECURITY NODE] ---")
+        print(f"TARGET: {user.get('email') or user.get('phone')}")
+        print(f"DISPATCHED OTP: {otp}")
+        print(f"-----------------------")
+        logger.info(f"[OTP-GEN] Generated code {otp} for node {user.get('email')}")
         # Determine target: detect if preferred_channel is a mobile identifier (contains 10+ digits)
         clean_pref = preferred_channel.replace(" ", "").replace("+", "") if preferred_channel else ""
         is_phone_used = preferred_channel and clean_pref.isdigit() and len(clean_pref) >= 10
