@@ -57,6 +57,39 @@ def send_email_async(message, purpose, recipient):
 
     threading.Thread(target=worker, daemon=True).start()
 
+def otp_email_message(subject, recipient, otp):
+    return Message(
+        subject=subject,
+        recipients=[recipient],
+        body=(
+            f"Your HealthAI verification code is {otp}.\n\n"
+            "This code expires in 10 minutes.\n\n"
+            "If you did not request this code, you can ignore this email.\n\n"
+            "HealthAI"
+        )
+    )
+
+def send_sms_otp(phone, otp, purpose):
+    account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
+    auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+    twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
+    if not account_sid or not auth_token or not twilio_phone:
+        return False, "Missing Twilio environment config"
+
+    try:
+        client = Client(account_sid, auth_token)
+        client.messages.create(
+            body=f"Your HealthAI verification code is {otp}. It expires in 10 minutes.",
+            from_=twilio_phone,
+            to=phone
+        )
+        log_auth_event("otp_sms_sent", recipient=mask_identifier(phone), purpose=purpose)
+        return True, None
+    except Exception as e:
+        error = str(e)
+        log_auth_event("otp_sms_failed", "warning", recipient=mask_identifier(phone), purpose=purpose, error=error)
+        return False, error
+
 @auth_bp.route("/api/register", methods=["POST"])
 def register():
     try:
@@ -292,52 +325,32 @@ def dispatch_otp(user, preferred_channel=None):
         
         # Priority 1: Preferred Phone Channel (SMS)
         if is_phone_used and user.get("phone"):
-            account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-            auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-            twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
-            if account_sid and auth_token and twilio_phone:
-                client = Client(account_sid, auth_token)
-                client.messages.create(
-                    body=f"HealthAI Login OTP: {otp}. Valid for 10 min.",
-                    from_=twilio_phone,
-                    to=user["phone"]
-                )
-                log_auth_event("otp_sms_sent", recipient=mask_identifier(user["phone"]))
+            sms_sent, sms_error = send_sms_otp(user["phone"], otp, "login_otp")
+            if sms_sent:
                 return True, f"SMS node: ***{user['phone'][-4:]}", otp
+            if user.get("email"):
+                msg = otp_email_message("Your HealthAI verification code", user["email"], otp)
+                send_email_async(msg, "login_otp_sms_fallback", user["email"])
+                return True, f"SMS unavailable, email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
+            return False, f"SMS delivery failed: {sms_error}", None
 
         # Priority 2: Preferred Email Channel (SMTP)
         if is_email_used and user.get("email"):
-            msg = Message(
-                subject="HealthAI: Clinical Authentication Token",
-                recipients=[user["email"]],
-                body=f"SECURITY ALERT: Verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
-            )
+            msg = otp_email_message("Your HealthAI verification code", user["email"], otp)
             send_email_async(msg, "login_otp", user["email"])
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
 
         # Final Fallback: Send to whatever primary communication vector the node has
         if user.get("email"):
-            msg = Message(
-                subject="HealthAI: Clinical Authentication Fallback",
-                recipients=[user["email"]],
-                body=f"SECURITY ALERT: Fallback verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
-            )
+            msg = otp_email_message("Your HealthAI verification code", user["email"], otp)
             send_email_async(msg, "login_otp_fallback", user["email"])
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
         elif user.get("phone"):
             # SMS logic again (Fallback)
-            account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-            auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-            twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
-            if account_sid and auth_token and twilio_phone:
-                client = Client(account_sid, auth_token)
-                client.messages.create(
-                    body=f"HealthAI Login OTP: {otp}. Valid for 10 min.",
-                    from_=twilio_phone,
-                    to=user["phone"]
-                )
-                log_auth_event("otp_sms_sent", recipient=mask_identifier(user["phone"]))
+            sms_sent, sms_error = send_sms_otp(user["phone"], otp, "login_otp_fallback")
+            if sms_sent:
                 return True, f"SMS node: ***{user['phone'][-4:]}", otp
+            return False, f"SMS delivery failed: {sms_error}", None
 
         log_auth_event("otp_no_delivery_channel", "warning", user_id=str(user.get("_id")))
         return False, "No valid communication vector found", None
@@ -425,11 +438,7 @@ def forgot_password():
         # Email Channel
         if email:
             try:
-                msg = Message(
-                    subject="HealthAI: Security Recovery Token",
-                    recipients=[email],
-                    body=f"SECURITY ALERT: Recovery protocol authorized.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
-                )
+                msg = otp_email_message("Reset your HealthAI password", email, otp)
                 send_email_async(msg, "forgot_password", email)
                 dispatch_success = True
             except Exception as e:
@@ -438,25 +447,17 @@ def forgot_password():
                 
         # SMS Channel (Priority fallback)
         elif phone:
-            try:
-                account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-                auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-                twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
-                if account_sid and auth_token and twilio_phone:
-                    client = Client(account_sid, auth_token)
-                    client.messages.create(
-                        body=f"HealthAI OTP: {otp}. Valid for 10 min. Do not share.",
-                        from_=twilio_phone,
-                        to=phone
-                    )
-                    log_auth_event("forgot_password_sms_sent", recipient=mask_identifier(phone))
-                    dispatch_success = True
-                else:
-                    dispatch_error = "Missing Twilio environment config"
-                    log_auth_event("forgot_password_sms_missing_config", "error")
-            except Exception as e:
-                dispatch_error = str(e)
-                logger.exception(f"[AUTH] event=forgot_password_sms_error error={str(e)}")
+            sms_sent, sms_error = send_sms_otp(phone, otp, "forgot_password")
+            if sms_sent:
+                dispatch_success = True
+            elif canonical_email:
+                dispatch_error = sms_error
+                msg = otp_email_message("Reset your HealthAI password", canonical_email, otp)
+                send_email_async(msg, "forgot_password_sms_fallback", canonical_email)
+                dispatch_success = True
+                log_auth_event("forgot_password_sms_fallback_email", identifier=mask_identifier(phone), email=mask_identifier(canonical_email), sms_error=sms_error)
+            else:
+                dispatch_error = sms_error
                 
         if not dispatch_success:
             log_auth_event("forgot_password_dispatch_failed", "warning", identifier=mask_identifier(email or phone), error=dispatch_error)
