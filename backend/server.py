@@ -1,6 +1,7 @@
 
 import os
 import sys
+import logging
 from datetime import timedelta
 from dotenv import load_dotenv
 import pandas as pd
@@ -8,6 +9,11 @@ import re
 
 # Load environment variables
 load_dotenv()
+
+import socket
+socket.setdefaulttimeout(10) # 10 second limit for all network calls (including Email)
+logging_format = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format=logging_format)
 
 # Project path configuration
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +39,7 @@ app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False') == 'True'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+app.config['MAIL_TIMEOUT'] = int(os.getenv('MAIL_TIMEOUT', 10))
 
 CORS(app, supports_credentials=True, resources={r"/*": {
     "origins": [

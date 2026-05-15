@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_mail import Message
 from backend.extensions import mongo, bcrypt, mail
@@ -15,10 +15,53 @@ import threading
 auth_bp = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
 
+def mask_identifier(value):
+    if not value:
+        return "missing"
+    value = str(value).strip()
+    if "@" in value:
+        name, domain = value.split("@", 1)
+        return f"{name[:2]}***@{domain}"
+    digits = re.sub(r"\D", "", value)
+    if len(digits) >= 4:
+        return f"***{digits[-4:]}"
+    return "***"
+
+def client_context():
+    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    ip_address = forwarded_for.split(",")[0].strip() or request.remote_addr or "unknown"
+    return {
+        "ip": ip_address,
+        "path": request.path,
+        "method": request.method,
+        "user_agent": request.headers.get("User-Agent", "unknown")[:180]
+    }
+
+def log_auth_event(event, level="info", **fields):
+    safe_fields = {key: value for key, value in fields.items() if value is not None}
+    message = f"[AUTH] event={event} context={client_context()} fields={safe_fields}"
+    getattr(logger, level, logger.info)(message)
+
+def send_email_async(message, purpose, recipient):
+    app = current_app._get_current_object()
+    masked_recipient = mask_identifier(recipient)
+    log_auth_event("email_queued", purpose=purpose, recipient=masked_recipient)
+
+    def worker():
+        with app.app_context():
+            try:
+                mail.send(message)
+                logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient}")
+            except Exception as e:
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={str(e)}")
+
+    threading.Thread(target=worker, daemon=True).start()
+
 @auth_bp.route("/api/register", methods=["POST"])
 def register():
     try:
         data = request.json
+        log_auth_event("register_attempt")
         name = data.get("name")
         email = data.get("email", "").lower().strip()
         phone = data.get("phone", "").replace(" ", "").strip()
@@ -38,6 +81,7 @@ def register():
         if phone: query_parts.append({"phone": phone})
         
         if mongo.db.users.find_one({"$or": query_parts}):
+            log_auth_event("register_duplicate_identifier", "warning", identifier=mask_identifier(email or phone), role=role)
             return jsonify({"error": "Clinical identifier (Email or Phone) already active in registry"}), 400
             
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -58,9 +102,10 @@ def register():
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
+        log_auth_event("register_success", identifier=mask_identifier(email or phone), role=role)
         return jsonify({"message": "Node Registration Successful", "status": "success"}), 201
     except Exception as e:
-        logger.error(f"[REGISTER-ERROR] {str(e)}")
+        logger.exception(f"[AUTH] event=register_error error={str(e)}")
         return jsonify({"error": "Registration protocol failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/login", methods=["POST"])
@@ -72,6 +117,7 @@ def login():
             
         identifier = data.get("email", "").strip() # This can be email or phone
         password = data.get("password")
+        log_auth_event("login_attempt", identifier=mask_identifier(identifier))
         
         if not identifier or not password:
             return jsonify({"error": "Clinical credentials missing"}), 400
@@ -101,6 +147,7 @@ def login():
                         "permissions": permissions
                     }
                 )
+                log_auth_event("login_success_skip_otp", identifier=mask_identifier(identifier), role=user.get("role"))
                 return jsonify({
                     "access_token": access_token,
                     "user": {
@@ -114,8 +161,9 @@ def login():
             # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
             success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
             if not success:
+                log_auth_event("login_otp_dispatch_failed", "warning", identifier=mask_identifier(identifier), error=msg)
                 return jsonify({"error": msg}), 500
-                
+            log_auth_event("login_otp_required", identifier=mask_identifier(identifier), channel=msg)
             return jsonify({
                 "otp_required": True,
                 "uid": str(user["_id"]),
@@ -123,10 +171,10 @@ def login():
                 "message": "Security token dispatched to your registered identifier"
             }), 200
             
+        log_auth_event("login_failed_bad_credentials", "warning", identifier=mask_identifier(identifier), user_found=bool(user))
         return jsonify({"error": "Secure credentials mismatch or account not found"}), 401
     except Exception as e:
-        logger.error(f"[LOGIN-CRITICAL-ERROR] {str(e)}")
-        logger.error(traceback.format_exc())
+        logger.exception(f"[AUTH] event=login_error error={str(e)}")
         return jsonify({
             "error": "Internal security node failure",
             "details": str(e) if os.environ.get("DEBUG_MODE") == "True" else "Check server logs"
@@ -138,6 +186,7 @@ def login_verify():
         data = request.json
         uid = data.get("uid")
         otp = str(data.get("otp", "")).strip()
+        log_auth_event("login_verify_attempt", uid=uid)
         
         if not uid or not otp:
             return jsonify({"error": "Verification parameters missing"}), 400
@@ -145,11 +194,13 @@ def login_verify():
         from bson.objectid import ObjectId
         user = mongo.db.users.find_one({"_id": ObjectId(uid)})
         if not user:
+            log_auth_event("login_verify_user_missing", "warning", uid=uid)
             return jsonify({"error": "Node identity lost"}), 404
             
         # Standard OTP check - Synchronized to UID anchor
         otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
         if not otp_record or str(otp_record["otp"]) != otp:
+            log_auth_event("login_verify_invalid_otp", "warning", uid=uid)
             return jsonify({"error": "Invalid security token"}), 401
         
         # Expiry check
@@ -158,6 +209,7 @@ def login_verify():
         if expiry.tzinfo is None: expiry = expiry.replace(tzinfo=timezone.utc)
         
         if now > expiry:
+            log_auth_event("login_verify_expired_otp", "warning", uid=uid)
             return jsonify({"error": "Security token expired"}), 401
             
         # Clear OTP after success
@@ -176,6 +228,7 @@ def login_verify():
             }
         )
         
+        log_auth_event("login_verify_success", uid=uid, role=user.get("role"))
         return jsonify({
             "access_token": access_token,
             "user": {
@@ -187,7 +240,7 @@ def login_verify():
             }
         }), 200
     except Exception as e:
-        logger.error(f"[LOGIN-VERIFY-ERROR] {str(e)}")
+        logger.exception(f"[AUTH] event=login_verify_error error={str(e)}")
         return jsonify({"error": "Verification protocol failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/available-roles", methods=["GET"])
@@ -203,7 +256,7 @@ def available_roles():
 
 
 def dispatch_otp(user, preferred_channel=None):
-    from backend.extensions import mongo, mail
+    from backend.extensions import mongo
     now = datetime.now(timezone.utc)
     
     try:
@@ -221,34 +274,22 @@ def dispatch_otp(user, preferred_channel=None):
                 "otp_secret": secret, 
                 "expiry": expiry,
                 "last_requested": now,
-                "attempt_count": 0
+                "attempt_count": 0,
+                "verified": False,
+                "verified_at": None
             }},
             upsert=True
         )
 
-        # DEBUG: Log OTP to console for easy access if email fails
-        print(f"--- [SECURITY NODE] ---")
-        print(f"TARGET: {user.get('email') or user.get('phone')}")
-        print(f"DISPATCHED OTP: {otp}")
-        print(f"-----------------------")
-        logger.info(f"[OTP-GEN] Generated code {otp} for node {user.get('email')}")
+        if os.environ.get("LOG_OTP_CODES") == "True":
+            logger.warning(f"[AUTH] event=otp_generated_debug target={mask_identifier(user.get('email') or user.get('phone'))} otp={otp}")
+        else:
+            logger.info(f"[AUTH] event=otp_generated target={mask_identifier(user.get('email') or user.get('phone'))}")
         # Determine target: detect if preferred_channel is a mobile identifier (contains 10+ digits)
         clean_pref = preferred_channel.replace(" ", "").replace("+", "") if preferred_channel else ""
         is_phone_used = preferred_channel and clean_pref.isdigit() and len(clean_pref) >= 10
         is_email_used = preferred_channel and "@" in preferred_channel
         
-        # Wrap email sending in a thread to prevent blocking the worker
-        def send_async_email(app_context, message):
-            with app_context:
-                try:
-                    mail.send(message)
-                    logger.info("[MAIL-SUCCESS] Background transmission complete.")
-                except Exception as e:
-                    logger.error(f"[MAIL-FAILURE] Background transmission failed: {str(e)}")
-
-        from flask import current_app
-        app_context = current_app.app_context()
-
         # Priority 1: Preferred Phone Channel (SMS)
         if is_phone_used and user.get("phone"):
             account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
@@ -261,6 +302,7 @@ def dispatch_otp(user, preferred_channel=None):
                     from_=twilio_phone,
                     to=user["phone"]
                 )
+                log_auth_event("otp_sms_sent", recipient=mask_identifier(user["phone"]))
                 return True, f"SMS node: ***{user['phone'][-4:]}", otp
 
         # Priority 2: Preferred Email Channel (SMTP)
@@ -270,7 +312,7 @@ def dispatch_otp(user, preferred_channel=None):
                 recipients=[user["email"]],
                 body=f"SECURITY ALERT: Verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
             )
-            threading.Thread(target=send_async_email, args=(app_context, msg)).start()
+            send_email_async(msg, "login_otp", user["email"])
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
 
         # Final Fallback: Send to whatever primary communication vector the node has
@@ -280,7 +322,7 @@ def dispatch_otp(user, preferred_channel=None):
                 recipients=[user["email"]],
                 body=f"SECURITY ALERT: Fallback verification requested.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
             )
-            threading.Thread(target=send_async_email, args=(app_context, msg)).start()
+            send_email_async(msg, "login_otp_fallback", user["email"])
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
         elif user.get("phone"):
             # SMS logic again (Fallback)
@@ -294,12 +336,14 @@ def dispatch_otp(user, preferred_channel=None):
                     from_=twilio_phone,
                     to=user["phone"]
                 )
+                log_auth_event("otp_sms_sent", recipient=mask_identifier(user["phone"]))
                 return True, f"SMS node: ***{user['phone'][-4:]}", otp
 
+        log_auth_event("otp_no_delivery_channel", "warning", user_id=str(user.get("_id")))
         return False, "No valid communication vector found", None
     except Exception as e:
         err_msg = f"Neural transmission failure: {str(e)}"
-        logger.error(f"[OTP-DISPATCH-ERROR] {err_msg}")
+        logger.exception(f"[AUTH] event=otp_dispatch_error error={err_msg}")
         return False, err_msg, None
 
 def validate_input(email, phone):
@@ -323,6 +367,7 @@ def forgot_password():
         # Normalize inputs
         if email: email = email.lower().strip()
         if phone: phone = phone.replace(" ", "")
+        log_auth_event("forgot_password_attempt", identifier=mask_identifier(email or phone))
             
         if not email and not phone:
             return jsonify({"error": "Recovery identifier required"}), 400
@@ -337,6 +382,7 @@ def forgot_password():
         user = mongo.db.users.find_one(user_query)
         
         if not user:
+            log_auth_event("forgot_password_user_missing", "warning", identifier=mask_identifier(email or phone))
             return jsonify({"error": "No account found with this identifier"}), 404
             
         canonical_email = user.get("email", "").lower()
@@ -349,6 +395,7 @@ def forgot_password():
             if last_req.tzinfo is None:
                 last_req = last_req.replace(tzinfo=timezone.utc)
             if (now - last_req).total_seconds() < 60:
+                log_auth_event("forgot_password_rate_limited", "warning", identifier=mask_identifier(email or phone))
                 return jsonify({"error": "Please wait 60 seconds before requesting a new OTP."}), 429
                 
         # Generate OTP (using unique dynamic secret per request instead of static email hash)
@@ -365,7 +412,9 @@ def forgot_password():
                 "otp_secret": secret, 
                 "expiry": expiry,
                 "last_requested": now,
-                "attempt_count": 0
+                "attempt_count": 0,
+                "verified": False,
+                "verified_at": None
             }},
             upsert=True
         )
@@ -376,17 +425,16 @@ def forgot_password():
         # Email Channel
         if email:
             try:
-                from backend.extensions import mail
                 msg = Message(
                     subject="HealthAI: Security Recovery Token",
                     recipients=[email],
                     body=f"SECURITY ALERT: Recovery protocol authorized.\n\nYour OTP is: {otp}\n\nExpires in 10 mins."
                 )
-                mail.send(msg)
+                send_email_async(msg, "forgot_password", email)
                 dispatch_success = True
             except Exception as e:
                 dispatch_error = str(e)
-                logger.error(f"[MAIL-ERROR] {str(e)}")
+                logger.exception(f"[AUTH] event=forgot_password_email_error error={str(e)}")
                 
         # SMS Channel (Priority fallback)
         elif phone:
@@ -401,24 +449,27 @@ def forgot_password():
                         from_=twilio_phone,
                         to=phone
                     )
+                    log_auth_event("forgot_password_sms_sent", recipient=mask_identifier(phone))
                     dispatch_success = True
                 else:
                     dispatch_error = "Missing Twilio environment config"
-                    logger.error("[SMS-ERROR] Missing Twilio environment config")
+                    log_auth_event("forgot_password_sms_missing_config", "error")
             except Exception as e:
                 dispatch_error = str(e)
-                logger.error(f"[SMS-ERROR] {str(e)}")
+                logger.exception(f"[AUTH] event=forgot_password_sms_error error={str(e)}")
                 
         if not dispatch_success:
+            log_auth_event("forgot_password_dispatch_failed", "warning", identifier=mask_identifier(email or phone), error=dispatch_error)
             return jsonify({"error": f"Failed to dispatch recovery token: {dispatch_error}"}), 500
-            
+
+        log_auth_event("forgot_password_otp_queued", identifier=mask_identifier(email or phone))
         return jsonify({
             "status": "success",
             "message": "OTP sent successfully to your identifier",
             "email": canonical_email
         }), 200
     except Exception as e:
-        logger.error(f"[FORGOT-PWD-ERROR] {str(e)}")
+        logger.exception(f"[AUTH] event=forgot_password_error error={str(e)}")
         return jsonify({"error": "Internal recovery protocol failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/verify-otp", methods=["POST"])
@@ -429,25 +480,26 @@ def verify_otp():
         if identifier:
             identifier = identifier.replace(" ", "").lower().strip()
         otp_input = str(data.get("otp", "")).strip()
+        log_auth_event("reset_verify_attempt", identifier=mask_identifier(identifier))
         
         if not identifier or not otp_input:
             return jsonify({"error": "Verification data missing"}), 400
         
-        logger.info(f"[VERIFY] Attempting verification for {identifier}")
-            
         # Lookup by identifier (Email or Phone)
         user = mongo.db.users.find_one({"$or": [{"email": identifier.lower()}, {"phone": identifier}]})
         
         if not user:
+            log_auth_event("reset_verify_user_missing", "warning", identifier=mask_identifier(identifier))
             return jsonify({"error": "No clinical identifier matched"}), 404
             
         otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
         
         if not otp_record:
+            log_auth_event("reset_verify_no_active_otp", "warning", identifier=mask_identifier(identifier))
             return jsonify({"error": "No active recovery protocol found"}), 404
             
         if str(otp_record["otp"]) != otp_input:
-            logger.warning(f"[VERIFY] OTP mismatch for {identifier}. Record: {otp_record['otp']}, Input: {otp_input}")
+            log_auth_event("reset_verify_invalid_otp", "warning", identifier=mask_identifier(identifier))
             return jsonify({"error": "Invalid verification identifier"}), 401
         
         expiry = otp_record["expiry"]
@@ -455,13 +507,21 @@ def verify_otp():
             expiry = expiry.replace(tzinfo=timezone.utc)
             
         if datetime.now(timezone.utc) > expiry:
-            logger.warning(f"[VERIFY] OTP expired for {identifier}")
+            log_auth_event("reset_verify_expired_otp", "warning", identifier=mask_identifier(identifier))
             return jsonify({"error": "OTP has expired. Re-initialize protocol."}), 401
-            
+
+        mongo.db.otps.update_one(
+            {"uid": str(user["_id"])},
+            {"$set": {
+                "verified": True,
+                "verified_at": datetime.now(timezone.utc)
+            }}
+        )
         # OTP is valid!
+        log_auth_event("reset_verify_success", identifier=mask_identifier(identifier))
         return jsonify({"message": "Node identity verified. Proceed to passkey re-initialization.", "status": "success"}), 200
     except Exception as e:
-        logger.error(f"[VERIFY-OTP-ERROR] {str(e)}")
+        logger.exception(f"[AUTH] event=reset_verify_error error={str(e)}")
         return jsonify({"error": "Verification node failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/reset-password", methods=["POST"])
@@ -470,14 +530,36 @@ def reset_password():
         data = request.json
         email = data.get("email")
         if email:
-            email = email.replace(" ", "")
+            email = email.replace(" ", "").lower().strip()
         new_password = data.get("password")
+        log_auth_event("reset_password_attempt", identifier=mask_identifier(email))
         
         if not email or not new_password:
             return jsonify({"error": "Re-initialization data missing"}), 400
             
         if len(new_password) < 6:
             return jsonify({"error": "New passkey must meet complexity requirements (6+ chars)"}), 400
+
+        user = mongo.db.users.find_one({"$or": [{"email": email.lower()}, {"phone": email}]})
+        if not user:
+            log_auth_event("reset_password_user_missing", "warning", identifier=mask_identifier(email))
+            return jsonify({"error": "Node relocation failed or identifier invalid"}), 404
+
+        otp_record = mongo.db.otps.find_one({"uid": str(user["_id"]), "verified": True})
+        if not otp_record:
+            log_auth_event("reset_password_unverified_otp", "warning", identifier=mask_identifier(email))
+            return jsonify({"error": "Verify OTP before resetting password"}), 401
+
+        expiry = otp_record.get("expiry")
+        if not expiry:
+            log_auth_event("reset_password_missing_otp_expiry", "warning", identifier=mask_identifier(email))
+            return jsonify({"error": "Recovery session expired. Request a new OTP."}), 401
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expiry:
+            mongo.db.otps.delete_one({"uid": str(user["_id"])})
+            log_auth_event("reset_password_expired_verified_otp", "warning", identifier=mask_identifier(email))
+            return jsonify({"error": "Recovery session expired. Request a new OTP."}), 401
 
         hashed_pw = bcrypt.generate_password_hash(new_password).decode('utf-8')
         # Update by either email or phone
@@ -487,11 +569,14 @@ def reset_password():
         )
         
         if res.modified_count == 0:
+            log_auth_event("reset_password_user_missing_or_unchanged", "warning", identifier=mask_identifier(email))
             return jsonify({"error": "Node relocation failed or identifier invalid"}), 404
-            
+
+        mongo.db.otps.delete_one({"uid": str(user["_id"])})
+        log_auth_event("reset_password_success", identifier=mask_identifier(email))
         return jsonify({"message": "Protocol re-secured successfully"}), 200
     except Exception as e:
-        logger.error(f"[RESET-PWD-ERROR] {str(e)}")
+        logger.exception(f"[AUTH] event=reset_password_error error={str(e)}")
         return jsonify({"error": "Passkey reset failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/auth/verify", methods=["GET"])
