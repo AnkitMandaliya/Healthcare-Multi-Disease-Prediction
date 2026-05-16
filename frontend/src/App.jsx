@@ -12,11 +12,20 @@ import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoadingProvider, useLoading } from './context/LoadingContext';
+import GlobalLoader from './components/layout/GlobalLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const PublicRoute = ({ children }) => {
   const { user, token, loading } = useAuth();
-  if (loading) return <div className="h-screen w-screen bg-[#F6F6F8] dark:bg-[#111621] flex items-center justify-center text-primary font-black uppercase tracking-[0.3em] animate-pulse">Initializing Secure Node...</div>;
+  const { startLoading, stopLoading } = useLoading();
+  
+  React.useEffect(() => {
+    if (loading) startLoading();
+    else stopLoading();
+  }, [loading]);
+
+  if (loading) return null;
   
   if (user && token) {
     return <Navigate to="/dashboard" replace />;
@@ -28,10 +37,14 @@ const AuthenticatedLayout = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const { user, token, loading } = useAuth();
+  const { startLoading, stopLoading } = useLoading();
   
-  if (loading) {
-    return <div className="h-screen w-screen bg-[#F6F6F8] dark:bg-[#111621] flex items-center justify-center text-primary font-black uppercase tracking-[0.3em] animate-pulse">Initializing Secure Node...</div>;
-  }
+  React.useEffect(() => {
+    if (loading) startLoading();
+    else stopLoading();
+  }, [loading]);
+
+  if (loading) return null;
 
   if (!user || !token) {
      return <Navigate to="/login" replace state={{ from: location }} />;
@@ -97,11 +110,14 @@ const AppRoutes = () => {
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
+      <LoadingProvider>
+        <AuthProvider>
+          <GlobalLoader />
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuthProvider>
+      </LoadingProvider>
     </ThemeProvider>
   );
 }

@@ -59,6 +59,19 @@
       }
     </script>
 
+    <script>
+      (function() {
+        try {
+          const theme = sessionStorage.getItem('theme');
+          const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (theme === 'dark' || (!theme && supportDarkMode)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <title>HealthAI | Multi-Disease Prediction Platform</title>
   </head>
   <body>

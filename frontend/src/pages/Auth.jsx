@@ -28,7 +28,7 @@ const Auth = () => {
   const [loginUid, setLoginUid] = useState(null);
   const [forgotPwdStep, setForgotPwdStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'clinician', otp: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'clinician', otp: '', phone: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -276,6 +276,10 @@ const Auth = () => {
   const handleReset = async () => {
     setLoading(true);
     try {
+      if (formData.password !== formData.confirmPassword) {
+        throw new Error("Passkeys do not match. Integrity check failed.");
+      }
+      
       const payloadPhone = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
       const res = await fetch(`${API_BASE}/api/reset-password`, {
         method: 'POST',
@@ -646,27 +650,44 @@ const Auth = () => {
                     )}
 
                     {forgotPwdStep === 3 && (
-                       <div>
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">New Identity Passkey</label>
-                          <div className="mt-2 relative">
-                             <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                             <input 
-                                type={showPassword ? "text" : "password"}
-                                required 
-                                className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                             />
-                             <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors"
-                             >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                             </button>
-                          </div>
-                       </div>
+                        <div className="space-y-5">
+                           <div>
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">New Identity Passkey</label>
+                              <div className="mt-2 relative">
+                                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                 <input 
+                                    type={showPassword ? "text" : "password"}
+                                    required 
+                                    className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
+                                    placeholder="********"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                 />
+                                 <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors"
+                                 >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                 </button>
+                              </div>
+                           </div>
+
+                           <div>
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm Secure Passkey</label>
+                              <div className="mt-2 relative">
+                                 <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                 <input 
+                                    type={showPassword ? "text" : "password"}
+                                    required 
+                                    className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-12 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
+                                    placeholder="********"
+                                    value={formData.confirmPassword}
+                                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                                 />
+                              </div>
+                           </div>
+                        </div>
                     )}
                  </>
               )}

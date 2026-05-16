@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { startRequest, stopRequest } from '../utils/loadingState';
+
 
 // Use environment variable for API Base URL
 export const API_BASE = import.meta.env.VITE_API_URL || 'https://healthcare-multi-disease-prediction.onrender.com';
@@ -13,20 +15,26 @@ const api = axios.create({
 
 // Request Interceptor for Auth
 api.interceptors.request.use(config => {
+    startRequest();
     const token = sessionStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 }, error => {
+    stopRequest();
     console.error('[API Request Error]:', error);
     return Promise.reject(error);
 });
 
 // Response Interceptor for Error Handling
 api.interceptors.response.use(
-    response => response,
+    response => {
+        stopRequest();
+        return response;
+    },
     error => {
+        stopRequest();
         const customError = {
             message: 'An unexpected error occurred',
             status: error.response?.status,

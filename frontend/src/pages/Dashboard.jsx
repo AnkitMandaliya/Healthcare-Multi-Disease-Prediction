@@ -108,7 +108,7 @@ const Dashboard = () => {
   }, []);
 
   const lineData = statsData?.lineData || [];
-  const pieData = statsData?.distribution || [{ name: 'Low Risk', value: 85 }, { name: 'High Risk', value: 15 }];
+  const pieData = statsData?.distribution || [{ name: 'Normal', value: 100 }, { name: 'High Risk', value: 0 }];
   const barData = statsData?.barData || [];
   const COLORS = ['#2463EB', '#F43F5E', '#10B981', '#F59E0B'];
 
@@ -183,8 +183,8 @@ const Dashboard = () => {
             <div className="w-[75vw] max-w-[280px] md:max-w-none shrink-0 snap-center md:w-auto">
               <KPICard 
                 title="Total Diagnostics" 
-                value={statsData?.live_volume?.toLocaleString() || "12,840"} 
-                change="+14.2%" 
+                value={statsData?.live_volume?.toLocaleString() || "0"} 
+                change="+0%" 
                 icon={Brain} 
                 trend="up" 
                 colorClass="bg-primary/10 text-primary" 
@@ -194,8 +194,8 @@ const Dashboard = () => {
             <div className="w-[75vw] max-w-[280px] md:max-w-none shrink-0 snap-center md:w-auto">
               <KPICard 
                 title="Critical Risk Flags" 
-                value={statsData?.critical_flags || "24"} 
-                change="PRIORITY" 
+                value={statsData?.critical_flags || "0"} 
+                change="NEURAL" 
                 icon={ShieldAlert} 
                 trend="down" 
                 colorClass="bg-rose-500/10 text-rose-500" 
@@ -205,8 +205,8 @@ const Dashboard = () => {
             <div className="w-[75vw] max-w-[280px] md:max-w-none shrink-0 snap-center md:w-auto">
               <KPICard 
                 title="Network Nodes" 
-                value={healthData?.models_loaded?.length || '8'} 
-                change="SYNCED" 
+                value={healthData?.models_loaded?.length || '0'} 
+                change="LIVE" 
                 icon={Users} 
                 trend="up" 
                 colorClass="bg-emerald-500/10 text-emerald-500" 
