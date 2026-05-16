@@ -322,9 +322,6 @@ def available_roles():
     # Fetch roles dynamically so new roles appear in the registration dropdown
     roles_cursor = mongo.db.roles.find({"name": {"$ne": "admin"}}, {"_id": 0, "name": 1, "permissions": 1})
     roles = list(roles_cursor)
-    if not roles:
-        # Fallback if DB is empty
-        roles = [{"name": "clinician", "permissions": ["view", "predict"]}, {"name": "patient", "permissions": ["view" , "predict"]}]
     return jsonify({"roles": roles}), 200
 
 

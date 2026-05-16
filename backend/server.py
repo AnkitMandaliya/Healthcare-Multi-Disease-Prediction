@@ -83,41 +83,14 @@ def seed_db():
     try:
         mongo.db.users.create_index("email", unique=True, sparse=True)
         mongo.db.users.create_index("phone", unique=True, sparse=True)
-    except:
-        pass
+    except Exception as e:
+        print("Note: Unique index creation skipped or already exists.", e)
 
-    if mongo.db.roles.count_documents({}) == 0:
-        mongo.db.roles.insert_many([
-            {"name": "admin", "permissions": ["predict", "manage_roles", "view_stats"]},
-            {"name": "doctor", "permissions": ["predict", "view_stats"]},
-            {"name": "patient", "permissions": []}
-        ])
-        from bson.objectid import ObjectId
-        mongo.db.users.replace_one(
-            {"email": "admin@healthai.com"},
-            {
-                "_id": ObjectId("69bf8e411bf0dc1731c11b9c"),
-                "name": "System Admin 1",
-                "email": "admin@healthai.com",
-                "password": "$2b$12$INOTlCslJdNRFMUs4BCgguXavgC8f/.G.VYD449E7wLap1cdOFUoa",
-                "role": "admin",
-                "avatar": "/api/uploads/avatar_69bf8e411bf0dc1731c11b9c.png",
-                "bio": "Expert system architect overseeing global clinical nodes and AI predictive infrastructure.",
-                "location": "Central Intelligence Hub",
-                "phone": "+916354578639",
-                "specialization": "Clinical AI Architect",
-                "department": "Systems Management Unit",
-                "medical_degree": "Ph.D. Neural Intelligence",
-                "experience": "12+ Years"
-            },
-            upsert=True
-        )
-
-print("Checking MongoDB connection and seeding database...")
+print("Checking MongoDB connection and database registry...")
 with app.app_context():
     try:
         seed_db()
-        print("DB check/seeding complete.")
+        print("Database registry check complete.")
     except Exception as e:
         print("DB connection failed:", e)
 

@@ -128,14 +128,21 @@ class PredictionController:
             total_records = mongo.db.records.count_documents(query)
             critical_records = mongo.db.records.count_documents({**query, "risk_level": "High"})
             
-            # 2. Line Data (Trend) - Dynamic Range
+            # 2. Line Data (Trend) - Real Data Only
             line_data = []
             for i in range(days - 1, -1, -1):
-                date = (datetime.now() - pd.Timedelta(days=i)).strftime("%b %d")
-                is_today = i == 0
-                val = total_records if is_today else np.random.randint(5, 20)
-                crit = critical_records if is_today else np.random.randint(0, 5)
-                line_data.append({"name": date, "value": val, "criticality": crit})
+                date_obj = datetime.now() - pd.Timedelta(days=i)
+                date_str = date_obj.strftime("%b %d")
+                
+                # Filter records for this specific day
+                day_start = datetime(date_obj.year, date_obj.month, date_obj.day)
+                day_end = day_start + pd.Timedelta(days=1)
+                
+                day_query = {**query, "timestamp": {"$gte": day_start, "$lt": day_end}}
+                val = mongo.db.records.count_documents(day_query)
+                crit = mongo.db.records.count_documents({**day_query, "risk_level": "High"})
+                
+                line_data.append({"name": date_str, "value": val, "criticality": crit})
 
             # 3. Risk Distribution
             low_risk = mongo.db.records.count_documents({**query, "risk_level": "Low"})
@@ -148,11 +155,11 @@ class PredictionController:
                 {"name": "Clinical High Risk", "value": round(high_risk / total * 100, 1)}
             ]
 
-            # 4. Feature Importance (Performance Metrics)
+            # 4. Feature Importance (Performance Metrics - Initialized to 0 until telemetry added)
             bar_data = [
-                {"name": "Model Accuracy", "value": 99.8},
-                {"name": "Node Up-time", "value": 100.0},
-                {"name": "API Latency", "value": 94.5}
+                {"name": "Model Status", "value": 100 if total_records > 0 else 0},
+                {"name": "Node Sync", "value": 100 if user_email else 0},
+                {"name": "Active Stream", "value": 0}
             ]
 
             # 5. Operational Logs (User specific)

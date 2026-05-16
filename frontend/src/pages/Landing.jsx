@@ -206,7 +206,7 @@ const Landing = () => {
                       <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">+0.2%</span>
                     </div>
                     <h4 className="text-slate-600 text-sm font-medium">Diagnostic Precision</h4>
-                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">99.85%</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">High Fidelity</p>
                     <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div className="h-full w-[99%] bg-primary"></div>
                     </div>
@@ -215,10 +215,10 @@ const Landing = () => {
                   <div className="rounded-2xl border border-white bg-white/60 p-6 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/60">
                     <div className="mb-4 flex items-center justify-between">
                       <Activity className="text-primary" />
-                      <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">+15%</span>
+                      <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">Active</span>
                     </div>
-                    <h4 className="text-slate-600 text-sm font-medium">Dataset Expansion</h4>
-                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">1.24B</p>
+                    <h4 className="text-slate-600 text-sm font-medium">Dataset Scale</h4>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Global Nodes</p>
                     <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div className="h-full w-[85%] bg-primary"></div>
                     </div>
@@ -231,20 +231,20 @@ const Landing = () => {
                           <Stethoscope size={24} className="text-primary" />
                         </div>
                         <div>
-                          <h4 className="text-slate-600 text-sm font-medium">Global Network</h4>
-                          <p className="text-xl font-bold text-slate-900 dark:text-white">528 Partner Clinics</p>
+                          <h4 className="text-slate-600 text-sm font-medium">Clinical Network</h4>
+                          <p className="text-xl font-bold text-slate-900 dark:text-white">Partnered Clinical Clusters</p>
                         </div>
                       </div>
                       <div className="flex -space-x-3 overflow-hidden">
-                        {[1, 2, 3].map((i) => (
-                          <img 
-                            key={i}
-                            className="inline-block h-10 w-10 rounded-full ring-2 ring-white" 
-                            src={`https://i.pravatar.cc/100?img=${i+10}`}
-                            alt="Clinic Logo"
-                          />
-                        ))}
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-xs font-bold ring-2 ring-white">+50</div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary ring-2 ring-white">
+                           <Activity size={18} />
+                        </div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 ring-2 ring-white">
+                           <ShieldCheck size={18} />
+                        </div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-blue-500 ring-2 ring-white">
+                           <Brain size={18} />
+                        </div>
                       </div>
                     </div>
                   </div>

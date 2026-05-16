@@ -28,7 +28,7 @@ def dashboard():
             "total_users": total_users,
             "total_predictions": total_predictions,
             "risked_cases": risked_cases,
-            "active_nodes": 3
+            "active_nodes": 1
         },
         "recent": recent_predictions,
         "spread": spread

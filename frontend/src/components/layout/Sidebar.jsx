@@ -144,7 +144,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                    <p className="text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-widest leading-none">Diagnostic Node</p>
-                   <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mt-1">L-4 Precision Cluster</p>
+                   <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mt-1">Operational Cluster</p>
                 </div>
              </div>
           </div>

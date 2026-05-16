@@ -1,7 +1,7 @@
 let loadingCallback = null;
 let activeRequests = 0;
 let startTime = 0;
-const MINIMUM_DURATION = 500; // 300ms min display time
+const MINIMUM_DURATION = 10000; // 10 seconds min display time
 
 export const setLoadingCallback = (callback) => {
     loadingCallback = callback;
