@@ -79,6 +79,13 @@ app.register_blueprint(user_bp)
 
 # --- DB SEEDING ---
 def seed_db():
+    # Ensure unique indexes for security
+    try:
+        mongo.db.users.create_index("email", unique=True, sparse=True)
+        mongo.db.users.create_index("phone", unique=True, sparse=True)
+    except:
+        pass
+
     if mongo.db.roles.count_documents({}) == 0:
         mongo.db.roles.insert_many([
             {"name": "admin", "permissions": ["predict", "manage_roles", "view_stats"]},
