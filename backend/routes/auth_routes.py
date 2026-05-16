@@ -58,15 +58,55 @@ def send_email_async(message, purpose, recipient):
     threading.Thread(target=worker, daemon=True).start()
 
 def otp_email_message(subject, recipient, otp):
+    plain_body = (
+        f"Your HealthAI verification code is {otp}.\n\n"
+        "This code expires in 10 minutes.\n\n"
+        "If you did not request this code, you can ignore this email.\n\n"
+        "HealthAI"
+    )
+    html_body = f"""
+<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f8fb;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#ffffff;border:1px solid #e5eaf2;border-radius:8px;">
+            <tr>
+              <td style="padding:28px 28px 12px;">
+                <p style="margin:0 0 8px;font-size:14px;color:#64748b;">HealthAI account verification</p>
+                <h1 style="margin:0;font-size:22px;line-height:1.35;color:#0f172a;">Your verification code</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:12px 28px 4px;">
+                <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#334155;">Use this code to continue signing in to your HealthAI account.</p>
+                <div style="font-size:32px;line-height:1;letter-spacing:6px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #dbe3ee;border-radius:8px;padding:18px;text-align:center;">{otp}</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 28px 28px;">
+                <p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#475569;">This code expires in 10 minutes.</p>
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">If you did not request this code, you can safely ignore this email.</p>
+              </td>
+            </tr>
+          </table>
+          <p style="max-width:520px;margin:14px auto 0;font-size:12px;line-height:1.5;color:#94a3b8;">HealthAI sends verification codes only when requested from the app.</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
     return Message(
         subject=subject,
         recipients=[recipient],
-        body=(
-            f"Your HealthAI verification code is {otp}.\n\n"
-            "This code expires in 10 minutes.\n\n"
-            "If you did not request this code, you can ignore this email.\n\n"
-            "HealthAI"
-        )
+        body=plain_body,
+        html=html_body,
+        extra_headers={
+            "X-Auto-Response-Suppress": "All",
+            "X-Entity-Ref-ID": f"healthai-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        }
     )
 
 def send_sms_otp(phone, otp, purpose):
