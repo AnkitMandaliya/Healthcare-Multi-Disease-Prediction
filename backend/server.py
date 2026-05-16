@@ -6,6 +6,8 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import pandas as pd
 import re
+import traceback
+from werkzeug.exceptions import HTTPException
 
 # Load environment variables
 load_dotenv()
@@ -79,12 +81,21 @@ app.register_blueprint(user_bp)
 
 # --- DB SEEDING ---
 def seed_db():
-    # Ensure unique indexes for security
+    # Ensure performance and security indexes
     try:
+        # User security
         mongo.db.users.create_index("email", unique=True, sparse=True)
         mongo.db.users.create_index("phone", unique=True, sparse=True)
+        
+        # Predictive records performance
+        mongo.db.records.create_index([("email", 1), ("timestamp", -1)])
+        mongo.db.records.create_index([("disease", 1), ("timestamp", -1)])
+        mongo.db.records.create_index("risk_level")
+        
+        # Notification throughput
+        mongo.db.notifications.create_index([("patient", 1), ("timestamp", -1)])
     except Exception as e:
-        print("Note: Unique index creation skipped or already exists.", e)
+        print("Note: Index creation status:", e)
 
 print("Checking MongoDB connection and database registry...")
 with app.app_context():
@@ -118,8 +129,7 @@ def health_check():
         "MAIL_USERNAME": "Set" if os.getenv("MAIL_USERNAME") else "Missing",
         "MAIL_PASSWORD": "Set" if os.getenv("MAIL_PASSWORD") else "Missing",
         "JWT_SECRET": "Set" if os.getenv("JWT_SECRET") else "Missing",
-        "TWILIO_ACCOUNT_SID": "Set" if os.getenv("TWILIO_ACCOUNT_SID") else "Missing",
-        "SKIP_OTP_USER": os.getenv("SKIP_OTP_USER", "Not Set")
+        "TWILIO_ACCOUNT_SID": "Set" if os.getenv("TWILIO_ACCOUNT_SID") else "Missing"
     }
 
 
@@ -133,9 +143,6 @@ def health_check():
 
 # ❌ Removed frontend static serving routes (IMPORTANT FIX)
 
-import traceback
-from werkzeug.exceptions import HTTPException
-
 @app.errorhandler(Exception)
 def handle_exception(e):
     if isinstance(e, HTTPException):
@@ -148,7 +155,7 @@ def handle_exception(e):
         "traceback": traceback.format_exc() if os.environ.get("DEBUG_MODE") == "True" else "Check server logs"
     }), 500
 
-# --- RUN LOCAL (NOT USED IN RENDER BUT SAFE) ---
+# --- RUN LOCAL ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host='0.0.0.0', port=port)

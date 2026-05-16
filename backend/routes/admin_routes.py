@@ -1,6 +1,9 @@
 from flask import Blueprint, jsonify, request
 from backend.utils.decorators import admin_required
 from backend.extensions import mongo
+from flask_jwt_extended import get_jwt_identity
+from bson.objectid import ObjectId
+import os
 import pandas as pd
 
 admin_bp = Blueprint('admin', __name__)
@@ -57,7 +60,6 @@ def users():
 @admin_bp.route("/api/admin/users/<user_id>", methods=["PUT"])
 @admin_required()
 def update_user(user_id):
-    from bson.objectid import ObjectId
     data = request.json
     
     update_data = {}
@@ -77,7 +79,10 @@ def update_user(user_id):
 @admin_bp.route("/api/admin/users/<user_id>", methods=["DELETE"])
 @admin_required()
 def delete_user(user_id):
-    from bson.objectid import ObjectId
+    current_admin_id = get_jwt_identity()
+    if str(current_admin_id) == str(user_id):
+        return jsonify({"error": "Self-decommissioning of administrative nodes is prohibited."}), 403
+        
     mongo.db.users.delete_one({"_id": ObjectId(user_id)})
     return jsonify({"message": "Node Identity Decommissioned"})
 

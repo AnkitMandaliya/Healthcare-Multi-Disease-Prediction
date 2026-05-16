@@ -1,16 +1,14 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-import pandas as pd
-import os
+from bson.objectid import ObjectId
 from backend.extensions import mongo
-from backend.controllers import model_manager, prediction_ctrl
+from backend.controllers import prediction_ctrl
 
 predict_bp = Blueprint('predict', __name__)
 
 @predict_bp.route("/predict_<disease>", methods=["POST"])
 @jwt_required(optional=True)
 def predict_endpoint(disease):
-    from bson.objectid import ObjectId
     current_user_id = get_jwt_identity()
     # Handle optional user authentication
     email = "Anonymous Guest"
@@ -39,7 +37,6 @@ def stats_endpoint(disease):
     user_email = get_jwt_identity() # This is the user _id from create_access_token
     # But wait, my create_access_token uses identity=str(user["_id"])
     # I need to fetch the user email if I want to filter by email.
-    from bson.objectid import ObjectId
     user = mongo.db.users.find_one({"_id": ObjectId(user_email)})
     email = user.get("email") if user else None
     

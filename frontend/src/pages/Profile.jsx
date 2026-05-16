@@ -26,7 +26,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser, refreshUser } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [records, setRecords] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,6 +50,7 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfileAndRecords();
+    refreshUser();
   }, []);
 
   const fetchProfileAndRecords = async () => {
@@ -96,13 +97,17 @@ const Profile = () => {
       if (selectedFile) {
         const formData = new FormData();
         formData.append('file', selectedFile);
-        await api.post('/api/user/upload-avatar', formData, {
+        const uploadRes = await api.post('/api/user/upload-avatar', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        if (uploadRes.data?.url) {
+          updateUser({ avatar: uploadRes.data.url });
+        }
       }
       
       // Update all registry data directly (Secured via Session Token)
       await api.put('/api/user/profile', editForm);
+      updateUser(editForm);
       setIsEditing(false);
       setSelectedFile(null);
       setPreviewUrl(null);

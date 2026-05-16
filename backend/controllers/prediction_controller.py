@@ -114,48 +114,71 @@ class PredictionController:
             return jsonify({"error": str(e), "status": "error"}), 400
 
     def get_dashboard_stats(self, disease_type, mongo, user_email=None, days=7):
-        """Aggregates metrics for the user's specific diagnostic hub."""
+        """Aggregates metrics using a high-performance single-pass aggregation pipeline."""
         try:
-            # Aggregate all diseases if 'all' is specified
             query = {}
             if disease_type != 'all':
                 query["disease"] = disease_type.capitalize()
-            
             if user_email:
                 query["email"] = user_email
-            
-            # 1. Operational Volume & Critical Flags
-            total_records = mongo.db.records.count_documents(query)
-            critical_records = mongo.db.records.count_documents({**query, "risk_level": "High"})
-            
-            # 2. Line Data (Trend) - Real Data Only
-            line_data = []
-            for i in range(days - 1, -1, -1):
-                date_obj = datetime.now() - pd.Timedelta(days=i)
-                date_str = date_obj.strftime("%b %d")
-                
-                # Filter records for this specific day
-                day_start = datetime(date_obj.year, date_obj.month, date_obj.day)
-                day_end = day_start + pd.Timedelta(days=1)
-                
-                day_query = {**query, "timestamp": {"$gte": day_start, "$lt": day_end}}
-                val = mongo.db.records.count_documents(day_query)
-                crit = mongo.db.records.count_documents({**day_query, "risk_level": "High"})
-                
-                line_data.append({"name": date_str, "value": val, "criticality": crit})
 
-            # 3. Risk Distribution
-            low_risk = mongo.db.records.count_documents({**query, "risk_level": "Low"})
-            medium_risk = mongo.db.records.count_documents({**query, "risk_level": "Medium"})
-            high_risk = mongo.db.records.count_documents({**query, "risk_level": "High"})
-            
-            total = low_risk + medium_risk + high_risk or 1
-            distribution = [
-                {"name": "Normal/Safe", "value": round((low_risk + medium_risk) / total * 100, 1)},
-                {"name": "Clinical High Risk", "value": round(high_risk / total * 100, 1)}
+            # Start of the range for trend analysis
+            start_date = datetime.now() - pd.Timedelta(days=days)
+
+            pipeline = [
+                {"$match": query},
+                {"$facet": {
+                    "totals": [
+                        {"$group": {
+                            "_id": None,
+                            "total": {"$sum": 1},
+                            "high": {"$sum": {"$cond": [{"$eq": ["$risk_level", "High"]}, 1, 0]}},
+                            "medium": {"$sum": {"$cond": [{"$eq": ["$risk_level", "Medium"]}, 1, 0]}},
+                            "low": {"$sum": {"$cond": [{"$eq": ["$risk_level", "Low"]}, 1, 0]}}
+                        }}
+                    ],
+                    "trend": [
+                        {"$match": {"timestamp": {"$gte": start_date}}},
+                        {"$group": {
+                            "_id": {
+                                "month": {"$month": "$timestamp"},
+                                "day": {"$dayOfMonth": "$timestamp"}
+                            },
+                            "count": {"$sum": 1},
+                            "critical": {"$sum": {"$cond": [{"$eq": ["$risk_level", "High"]}, 1, 0]}}
+                        }}
+                    ]
+                }}
             ]
 
-            # 4. Feature Importance (Performance Metrics - Initialized to 0 until telemetry added)
+            agg_results = list(mongo.db.records.aggregate(pipeline))[0]
+            
+            # 1. Totals Processing
+            t = agg_results["totals"][0] if agg_results["totals"] else {"total": 0, "high": 0, "medium": 0, "low": 0}
+            total_records = t["total"]
+            critical_records = t["high"]
+
+            # 2. Line Data Processing (Trend)
+            trend_map = {f"{r['_id']['month']}-{r['_id']['day']}": r for r in agg_results["trend"]}
+            line_data = []
+            for i in range(days - 1, -1, -1):
+                d = datetime.now() - pd.Timedelta(days=i)
+                key = f"{d.month}-{d.day}"
+                data = trend_map.get(key, {"count": 0, "critical": 0})
+                line_data.append({
+                    "name": d.strftime("%b %d"),
+                    "value": data["count"],
+                    "criticality": data["critical"]
+                })
+
+            # 3. Risk Distribution
+            total_dist = (t["low"] + t["medium"] + t["high"]) or 1
+            distribution = [
+                {"name": "Normal/Safe", "value": round((t["low"] + t["medium"]) / total_dist * 100, 1)},
+                {"name": "Clinical High Risk", "value": round(t["high"] / total_dist * 100, 1)}
+            ]
+
+            # 4. Feature Importance (Performance Metrics)
             bar_data = [
                 {"name": "Model Status", "value": 100 if total_records > 0 else 0},
                 {"name": "Node Sync", "value": 100 if user_email else 0},

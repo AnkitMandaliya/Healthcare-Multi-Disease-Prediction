@@ -121,6 +121,8 @@ def get_records():
     
     for r in records:
         r["_id"] = str(r["_id"])
+        if "timestamp" in r and hasattr(r["timestamp"], "isoformat"):
+            r["timestamp"] = r["timestamp"].isoformat()
         
     return jsonify(records), 200
 

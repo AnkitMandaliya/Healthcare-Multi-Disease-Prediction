@@ -195,57 +195,47 @@ def login():
         if not identifier or not password:
             return jsonify({"error": "Clinical credentials missing"}), 400
 
+        # Email format validation
+        if "@" in identifier and not re.match(r"[^@]+@[^@]+\.[^@]+", identifier):
+            return jsonify({"error": "Invalid email"}), 400
+            
+        # Mobile number format validation (Detects if input is numeric)
+        clean_id = identifier.replace(" ", "").replace("+", "").replace("-", "")
+        if clean_id.isdigit():
+            if not re.match(r"^\+?[1-9]\d{9,14}$", identifier.replace(" ", "")):
+                return jsonify({"error": "Invalid mobile number"}), 400
+
         # Search by email or phone
         user = mongo.db.users.find_one({"$or": [{"email": identifier.lower()}, {"phone": identifier}]})
-        
+
+        if not user:
+            log_auth_event("login_failed_user_not_found", "warning", identifier=mask_identifier(identifier))
+            return jsonify({"error": "Account not found"}), 404
+
         password_valid = False
-        if user:
-            try:
-                password_valid = bcrypt.check_password_hash(user["password"], password)
-            except Exception as pe:
-                logger.error(f"[LOGIN-PASSWORD-ERROR] {str(pe)}")
-                password_valid = False
+        try:
+            password_valid = bcrypt.check_password_hash(user["password"], password)
+        except Exception as pe:
+            logger.error(f"[LOGIN-PASSWORD-ERROR] {str(pe)}")
+            password_valid = False
                 
-        if user and password_valid:
-            # Production-Grade OTP Verification Flow
-            skip_otp = os.environ.get("SKIP_OTP_USER") == user["email"]
-            if skip_otp: 
-                role_data = mongo.db.roles.find_one({"name": user["role"]})
-                permissions = role_data.get("permissions", []) if role_data else []
-                access_token = create_access_token(
-                    identity=str(user["_id"]),
-                    additional_claims={
-                        "role": user["role"],
-                        "name": user["name"],
-                        "permissions": permissions
-                    }
-                )
-                log_auth_event("login_success_skip_otp", identifier=mask_identifier(identifier), role=user.get("role"))
-                return jsonify({
-                    "access_token": access_token,
-                    "user": {
-                        "email": user["email"],
-                        "name": user["name"],
-                        "role": user["role"],
-                        "permissions": permissions,
-                        "avatar": user.get("avatar", f"https://i.pravatar.cc/150?u={user['email'].lower() if user['email'] else user['name']}")
-                    }
-                }), 200
-            # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
-            success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
-            if not success:
-                log_auth_event("login_otp_dispatch_failed", "warning", identifier=mask_identifier(identifier), error=msg)
-                return jsonify({"error": msg}), 500
-            log_auth_event("login_otp_required", identifier=mask_identifier(identifier), channel=msg)
-            return jsonify({
-                "otp_required": True,
-                "uid": str(user["_id"]),
-                "sent_to": msg, # Obfuscated destination info
-                "message": "Security token dispatched to your registered identifier"
-            }), 200
-            
-        log_auth_event("login_failed_bad_credentials", "warning", identifier=mask_identifier(identifier), user_found=bool(user))
-        return jsonify({"error": "Secure credentials mismatch or account not found"}), 401
+        if not password_valid:
+            log_auth_event("login_failed_bad_password", "warning", identifier=mask_identifier(identifier))
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Production-Grade OTP Verification Flow
+        # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
+        success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
+        if not success:
+            log_auth_event("login_otp_dispatch_failed", "warning", identifier=mask_identifier(identifier), error=msg)
+            return jsonify({"error": msg}), 500
+        log_auth_event("login_otp_required", identifier=mask_identifier(identifier), channel=msg)
+        return jsonify({
+            "otp_required": True,
+            "uid": str(user["_id"]),
+            "sent_to": msg, # Obfuscated destination info
+            "message": "Security token dispatched to your registered identifier"
+        }), 200
     except Exception as e:
         logger.exception(f"[AUTH] event=login_error error={str(e)}")
         return jsonify({
@@ -268,7 +258,7 @@ def login_verify():
         user = mongo.db.users.find_one({"_id": ObjectId(uid)})
         if not user:
             log_auth_event("login_verify_user_missing", "warning", uid=uid)
-            return jsonify({"error": "Node identity lost"}), 404
+            return jsonify({"error": "User session not found"}), 404
             
         # Standard OTP check - Synchronized to UID anchor
         otp_record = mongo.db.otps.find_one({"uid": str(user["_id"])})
@@ -581,7 +571,7 @@ def reset_password():
         user = mongo.db.users.find_one({"$or": [{"email": email.lower()}, {"phone": email}]})
         if not user:
             log_auth_event("reset_password_user_missing", "warning", identifier=mask_identifier(email))
-            return jsonify({"error": "Node relocation failed or identifier invalid"}), 404
+            return jsonify({"error": "Invalid user identifier"}), 404
 
         otp_record = mongo.db.otps.find_one({"uid": str(user["_id"]), "verified": True})
         if not otp_record:
@@ -608,7 +598,7 @@ def reset_password():
         
         if res.modified_count == 0:
             log_auth_event("reset_password_user_missing_or_unchanged", "warning", identifier=mask_identifier(email))
-            return jsonify({"error": "Node relocation failed or identifier invalid"}), 404
+            return jsonify({"error": "Invalid user identifier"}), 404
 
         mongo.db.otps.delete_one({"uid": str(user["_id"])})
         log_auth_event("reset_password_success", identifier=mask_identifier(email))

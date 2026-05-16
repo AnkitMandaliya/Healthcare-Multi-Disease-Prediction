@@ -95,6 +95,32 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  const updateUser = (updatedData) => {
+    setUser(prev => {
+       const updated = { ...prev, ...updatedData };
+       sessionStorage.setItem('user', JSON.stringify(updated));
+       return updated;
+    });
+  };
+
+  const refreshUser = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/user/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(prev => {
+          const updated = { ...prev, ...data };
+          sessionStorage.setItem('user', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to refresh node data", err);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -103,7 +129,9 @@ export const AuthProvider = ({ children }) => {
       logout, 
       notifications, 
       fetchNotifications, 
-      updateRole, 
+      updateRole,
+      updateUser,
+      refreshUser,
       loading
     }}>
       {children}

@@ -78,7 +78,7 @@ const Navbar = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#111621]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 sm:px-8 py-3 sm:py-4 transition-all duration-500">
+    <header className="sticky top-0 z-[100] bg-white/80 dark:bg-[#111621]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 sm:px-8 py-3 sm:py-4 transition-all duration-500">
       <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
         <button 
           onClick={onMenuClick}
@@ -121,7 +121,7 @@ const Navbar = ({ onMenuClick }) => {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-[#111621] border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden z-50 origin-top-right"
+                className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 bg-white dark:bg-[#111621] border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden z-[110] origin-top-right"
               >
                 <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                   <div>

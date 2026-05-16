@@ -142,7 +142,7 @@ const Dashboard = () => {
       <div className="fixed bottom-0 right-[-10%] w-[50vw] h-[50vw] md:w-[500px] md:h-[500px] bg-emerald-500/10 rounded-full blur-[80px] md:blur-[100px] pointer-events-none -z-10 mix-blend-multiply dark:mix-blend-soft-light opacity-50"></div>
 
       {/* Dynamic Header Section */}
-      <div className="relative z-50 flex flex-col lg:flex-row lg:items-center justify-between gap-3 md:gap-8 bg-white/70 dark:bg-slate-900/60 p-3 md:p-8 rounded-2xl md:rounded-[3rem] border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-none backdrop-blur-2xl">
+      <div className="relative z-20 flex flex-col lg:flex-row lg:items-center justify-between gap-3 md:gap-8 bg-white/70 dark:bg-slate-900/60 p-3 md:p-8 rounded-2xl md:rounded-[3rem] border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-none backdrop-blur-2xl">
         <div className="space-y-1 md:space-y-2">
            <div className="flex items-center gap-2 md:gap-3">
               <span className="px-2 md:px-3 py-0.5 md:py-1 bg-primary/10 text-primary text-[8px] md:text-[10px] font-black uppercase tracking-widest rounded-full border border-primary/20">Live Intelligence</span>

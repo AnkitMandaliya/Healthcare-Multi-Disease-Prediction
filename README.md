@@ -4,9 +4,9 @@ An industry-standard, clinical-grade platform for multi-disease prediction, feat
 
 ## 🚀 Deployment & Operation
 
-### 1. Unified Server (Production)
+### 1. Unified Server (Production/Development)
 ```bash
-python app/main.py
+python wsgi.py
 ```
 *Accessible at http://127.0.0.1:5000*
 
