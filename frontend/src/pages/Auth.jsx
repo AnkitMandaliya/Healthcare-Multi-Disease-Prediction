@@ -334,7 +334,7 @@ const Auth = () => {
            >
               <div className="flex items-center gap-3">
                  <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-primary shadow-xl">
-                    <Activity size={28} />
+                    <img src="/logo.png" alt="HealthAI Logo" className="w-full h-full object-contain p-1" />
                  </div>
                  <h1 className="text-3xl font-black text-white tracking-tight uppercase">HealthAI <span className="text-white/60">Node</span></h1>
               </div>
@@ -379,8 +379,8 @@ const Auth = () => {
           {/* Mobile Logo */}
           <div className="lg:hidden flex justify-center mb-10">
              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center text-white">
-                   <Activity size={24} />
+                <div className="h-10 w-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+                   <img src="/logo.png" alt="HealthAI Logo" className="w-full h-full object-contain p-1" />
                 </div>
                 <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">HealthAI</h2>
              </div>

@@ -30,8 +30,8 @@ const Landing = () => {
       <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-white/80 dark:bg-[#111621]/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-              <Activity size={20} />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden p-1">
+              <img src="/logo.png" alt="HealthAI Logo" className="w-full h-full object-contain" />
             </div>
             <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">HealthAI</h2>
           </div>

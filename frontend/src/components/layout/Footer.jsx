@@ -8,8 +8,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-3 text-primary mb-6">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <Microscope size={24} />
+              <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden p-1">
+                <img src="/logo.png" alt="HealthAI Logo" className="w-full h-full object-contain" />
               </div>
               <h2 className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">HealthAI</h2>
             </div>

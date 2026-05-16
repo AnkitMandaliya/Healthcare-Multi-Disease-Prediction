@@ -57,13 +57,15 @@ const Sidebar = ({ isOpen, onClose }) => {
           animate={{ opacity: 1, x: 0 }}
           className="p-5 sm:p-8 flex items-center gap-3 sm:gap-4 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/2"
         >
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3">
-             <Activity className="text-white sm:w-[24px] sm:h-[24px]" size={20} />
-          </div>
-          <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Health<span className="text-primary">AI</span></h1>
-            <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 sm:mt-1.5">Neural Cluster v3.1</p>
-          </div>
+          <Link to="/dashboard" className="flex items-center gap-3 sm:gap-4 group">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white dark:bg-slate-800 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden group-hover:scale-105 transition-transform">
+               <img src="/logo.png" alt="HealthAI Logo" className="w-full h-full object-contain p-1" />
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Health<span className="text-primary">AI</span></h1>
+              <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 sm:mt-1.5">Neural Cluster v3.1</p>
+            </div>
+          </Link>
         </motion.div>
 
         {/* Navigation */}
