@@ -391,7 +391,7 @@ const Profile = () => {
                               className="w-full h-14 bg-slate-50 dark:bg-white/5 border-0 rounded-2xl pl-12 pr-4 text-xs font-bold text-slate-900 dark:text-white focus:ring-4 focus:ring-primary/10 transition-all font-mono"
                               value={editForm.email}
                               onChange={e => setEditForm({...editForm, email: e.target.value})}
-                              placeholder="admin@healthai.com"
+                              placeholder="admin@gmail.com"
                           />
                        </div>
                     </div>

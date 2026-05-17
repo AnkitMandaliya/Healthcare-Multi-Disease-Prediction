@@ -182,20 +182,6 @@ const Landing = () => {
                 <p className="mt-6 text-lg text-slate-600 dark:text-slate-500 leading-relaxed">
                   Our platform adheres to the highest medical standards, using a WHO-style reference layout for data validation and cross-referencing against global health benchmarks.
                 </p>
-                <div className="mt-10 flex flex-wrap gap-8">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-3xl font-black text-primary">99.8%</span>
-                    <span className="text-sm font-medium text-slate-600">Model Accuracy</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-3xl font-black text-primary">1.2B+</span>
-                    <span className="text-sm font-medium text-slate-600">Data Points Analyzed</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-3xl font-black text-primary">500+</span>
-                    <span className="text-sm font-medium text-slate-600">Partner Clinics</span>
-                  </div>
-                </div>
               </div>
               
               <div className="lg:w-1/2">
@@ -277,9 +263,6 @@ const Landing = () => {
                     className="flex h-12 items-center justify-center rounded-lg bg-white px-8 text-sm font-bold text-primary transition-all hover:bg-slate-100"
                   >
                     Get Started Now
-                  </button>
-                  <button className="flex h-12 items-center justify-center rounded-lg border border-white/30 bg-white/10 px-8 text-sm font-bold backdrop-blur-sm transition-all hover:bg-white/20">
-                    Contact Sales
                   </button>
                 </div>
               </div>

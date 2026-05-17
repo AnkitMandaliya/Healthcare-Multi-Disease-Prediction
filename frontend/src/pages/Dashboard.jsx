@@ -20,7 +20,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { checkHealth, fetchStats } from '../services/api';
 
-const KPICard = ({ title, value, change, icon: Icon, trend, colorClass, subtitle }) => (
+const KPICard = ({ title, value, change, icon: Icon, trend, colorClass, subtitle, progress = 70 }) => (
   <motion.div 
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -56,7 +56,7 @@ const KPICard = ({ title, value, change, icon: Icon, trend, colorClass, subtitle
       <div className="mt-3 md:mt-5 h-1 md:h-1.5 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full overflow-hidden shadow-inner">
          <motion.div 
            initial={{ width: 0 }}
-           animate={{ width: '70%' }}
+           animate={{ width: `${progress}%` }}
            className={`h-full rounded-full ${colorClass?.includes('text-primary') ? 'bg-gradient-to-r from-blue-600 to-primary' : (colorClass?.includes('text-emerald') ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-gradient-to-r from-rose-600 to-rose-400')}`}
          />
       </div>
@@ -184,33 +184,36 @@ const Dashboard = () => {
               <KPICard 
                 title="Total Diagnostics" 
                 value={statsData?.live_volume?.toLocaleString() || "0"} 
-                change="+0%" 
+                change={statsData?.live_volume > 0 ? `+${statsData.live_volume}` : "0"} 
                 icon={Brain} 
                 trend="up" 
                 colorClass="bg-primary/10 text-primary" 
                 subtitle="CYCLES"
+                progress={statsData?.live_volume ? Math.min(100, Math.round((statsData.live_volume / 50) * 100)) : 0}
               />
             </div>
             <div className="w-[75vw] max-w-[280px] md:max-w-none shrink-0 snap-center md:w-auto">
               <KPICard 
                 title="Critical Risk Flags" 
                 value={statsData?.critical_flags || "0"} 
-                change="NEURAL" 
+                change={statsData?.live_volume > 0 ? `${Math.round((statsData.critical_flags / statsData.live_volume) * 100)}%` : "0%"} 
                 icon={ShieldAlert} 
-                trend="down" 
+                trend={statsData?.critical_flags > 0 ? "down" : "stable"} 
                 colorClass="bg-rose-500/10 text-rose-500" 
                 subtitle="ALERTS"
+                progress={statsData?.live_volume > 0 ? Math.round((statsData.critical_flags / statsData.live_volume) * 100) : 0}
               />
             </div>
             <div className="w-[75vw] max-w-[280px] md:max-w-none shrink-0 snap-center md:w-auto">
               <KPICard 
                 title="Network Nodes" 
                 value={healthData?.models_loaded?.length || '0'} 
-                change="LIVE" 
+                change="ACTIVE" 
                 icon={Users} 
                 trend="up" 
                 colorClass="bg-emerald-500/10 text-emerald-500" 
                 subtitle="ACTIVE"
+                progress={healthData?.models_loaded ? Math.round((healthData.models_loaded.length / 3) * 100) : 0}
               />
             </div>
           </div>

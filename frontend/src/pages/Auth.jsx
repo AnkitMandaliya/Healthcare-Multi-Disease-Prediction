@@ -652,7 +652,7 @@ const Auth = () => {
                                  type="text" 
                                  required={isLogin} 
                                  className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm"
-                                 placeholder={isLogin ? "email@health.com / 91xxxxxx" : "node@healthai.com"}
+                                 placeholder={isLogin ? "email@health.com / 91xxxxxx" : "node@gmail.com"}
                                  value={formData.email}
                                  onChange={(e) => setFormData({...formData, email: e.target.value})}
                               />
@@ -804,7 +804,7 @@ const Auth = () => {
                                    type="email" 
                                    disabled={!!formData.phone}
                                    className="w-full h-14 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl pl-12 pr-4 text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all text-slate-900 dark:text-white shadow-sm disabled:opacity-20"
-                                   placeholder="node@healthai.com"
+                                   placeholder="node@gmail.com"
                                    value={formData.email}
                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                                 />
