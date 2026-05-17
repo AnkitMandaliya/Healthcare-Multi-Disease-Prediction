@@ -302,11 +302,6 @@ const Profile = () => {
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
                   <div className="relative group flex-shrink-0">
                     <div className="absolute inset-0 bg-primary/20 rounded-[2rem] blur-2xl group-hover:bg-primary/30 transition-all"></div>
-                    <img 
-                      src={user.avatar} 
-                      alt={user.name} 
-                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2rem] sm:rounded-[2.5rem] object-cover border-4 border-white dark:border-slate-900 shadow-2xl relative z-10" 
-                    />
                   </div>
                   <div className="text-center sm:text-left">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
