@@ -133,7 +133,7 @@ def health_check():
 
     env_vars = {
         "MONGO_URI": "Set" if os.getenv("MONGO_URI") else "Missing",
-        "GMAIL_APP_PASSWORD": "Set" if os.getenv("GMAIL_APP_PASSWORD") else "Missing",
+        "SENDGRID_API_KEY": "Set" if os.getenv("SENDGRID_API_KEY") else "Missing",
         "JWT_SECRET": "Set" if os.getenv("JWT_SECRET") else "Missing"
     }
 

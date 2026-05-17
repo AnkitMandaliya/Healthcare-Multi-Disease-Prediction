@@ -42,38 +42,53 @@ def log_auth_event(event, level="info", **fields):
     getattr(logger, level, logger.info)(message)
 
 def send_email_async(subject, recipient, html_body, purpose):
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-
     masked_recipient = mask_identifier(recipient)
     log_auth_event("email_queued", purpose=purpose, recipient=masked_recipient)
 
     def send_action():
         try:
-            gmail_user = os.environ.get("GMAIL_USER", "mandaliyaabhi901@gmail.com")
-            gmail_password = os.environ.get("GMAIL_APP_PASSWORD")
-            if not gmail_password:
-                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=Missing GMAIL_APP_PASSWORD environment variable")
+            api_key = os.environ.get("SENDGRID_API_KEY")
+            sender = os.environ.get("SENDGRID_SENDER", "mandaliyaabhi901@gmail.com")
+            if not api_key:
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=Missing SENDGRID_API_KEY environment variable")
                 return False
 
-            # Create message container
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = f"HealthAI <{gmail_user}>"
-            msg['To'] = recipient
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "personalizations": [{
+                    "to": [{"email": recipient}],
+                    "subject": subject
+                }],
+                "from": {
+                    "email": sender,
+                    "name": "HealthAI Node"
+                },
+                "reply_to": {
+                    "email": "mandaliyaabhi901@gmail.com",
+                    "name": "HealthAI Support"
+                },
+                "content": [{
+                    "type": "text/html",
+                    "value": html_body
+                }]
+            }
 
-            # Attach HTML content
-            msg.attach(MIMEText(html_body, 'html'))
+            response = requests.post(
+                "https://api.sendgrid.com/v3/mail/send",
+                headers=headers,
+                json=payload,
+                timeout=10
+            )
 
-            # Connect and send
-            with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
-                server.starttls()
-                server.login(gmail_user, gmail_password)
-                server.sendmail(gmail_user, recipient, msg.as_string())
-
-            logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient} via=gmail_smtp")
-            return True
+            if response.status_code in [200, 201, 202]:
+                logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient} via=sendgrid")
+                return True
+            else:
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={response.text}")
+                return False
         except Exception as e:
             logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={str(e)}")
             return False
