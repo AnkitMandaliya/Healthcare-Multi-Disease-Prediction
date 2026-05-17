@@ -300,7 +300,7 @@ const Profile = () => {
                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Predictions Executed</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-                  <div className="relative group">
+                  <div className="relative group flex-shrink-0">
                     <div className="absolute inset-0 bg-primary/20 rounded-[2rem] blur-2xl group-hover:bg-primary/30 transition-all"></div>
                     <img 
                       src={user.avatar} 
