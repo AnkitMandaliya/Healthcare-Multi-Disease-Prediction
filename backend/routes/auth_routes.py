@@ -42,42 +42,48 @@ def log_auth_event(event, level="info", **fields):
     getattr(logger, level, logger.info)(message)
 
 def send_email_async(subject, recipient, html_body, purpose):
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
     masked_recipient = mask_identifier(recipient)
     log_auth_event("email_queued", purpose=purpose, recipient=masked_recipient)
 
-    def worker():
+    def send_action():
         try:
-            api_key = os.environ.get("RESEND_API_KEY")
-            if not api_key:
-                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=Missing RESEND_API_KEY environment variable")
-                return
+            gmail_user = os.environ.get("GMAIL_USER", "mandaliyaabhi901@gmail.com")
+            gmail_password = os.environ.get("GMAIL_APP_PASSWORD")
+            if not gmail_password:
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=Missing GMAIL_APP_PASSWORD environment variable")
+                return False
 
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "from": "HealthAI <support@healthai.com>",
-                "to": [recipient],
-                "subject": subject,
-                "html": html_body
-            }
-            
-            response = requests.post(
-                "https://api.resend.com/emails",
-                headers=headers,
-                json=payload,
-                timeout=10
-            )
-            
-            if response.status_code in [200, 201, 202]:
-                logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient} resend_id={response.json().get('id')}")
-            else:
-                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={response.text}")
+            # Create message container
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = f"HealthAI <{gmail_user}>"
+            msg['To'] = recipient
+
+            # Attach HTML content
+            msg.attach(MIMEText(html_body, 'html'))
+
+            # Connect and send
+            with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
+                server.starttls()
+                server.login(gmail_user, gmail_password)
+                server.sendmail(gmail_user, recipient, msg.as_string())
+
+            logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient} via=gmail_smtp")
+            return True
         except Exception as e:
             logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={str(e)}")
+            return False
 
-    threading.Thread(target=worker, daemon=True).start()
+    # Check if running on Vercel (serverless environment where background threads are terminated early)
+    if os.environ.get("VERCEL") == "1" or os.environ.get("VERCEL"):
+        logger.info(f"[AUTH] event=email_sync_send purpose={purpose} reason=vercel_environment")
+        send_action()
+    else:
+        threading.Thread(target=send_action, daemon=True).start()
 
 def otp_email_message(otp):
     return f"""
