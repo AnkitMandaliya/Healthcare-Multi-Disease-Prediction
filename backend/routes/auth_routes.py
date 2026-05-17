@@ -47,47 +47,35 @@ def send_email_async(subject, recipient, html_body, purpose):
 
     def send_action():
         try:
-            api_key = os.environ.get("SENDGRID_API_KEY")
-            sender = os.environ.get("SENDGRID_SENDER", "mandaliyaabhi901@gmail.com")
-            if not api_key:
-                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=Missing SENDGRID_API_KEY environment variable")
+            script_url = os.environ.get("GMAIL_APP_SCRIPT_URL")
+            secret_token = os.environ.get("GMAIL_APP_SCRIPT_TOKEN", "healthai_secure_token_2026")
+            if not script_url:
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=Missing GMAIL_APP_SCRIPT_URL environment variable")
                 return False
 
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
             payload = {
-                "personalizations": [{
-                    "to": [{"email": recipient}],
-                    "subject": subject
-                }],
-                "from": {
-                    "email": sender,
-                    "name": "HealthAI Node"
-                },
-                "reply_to": {
-                    "email": "mandaliyaabhi901@gmail.com",
-                    "name": "HealthAI Support"
-                },
-                "content": [{
-                    "type": "text/html",
-                    "value": html_body
-                }]
+                "secret_token": secret_token,
+                "recipient": recipient,
+                "subject": subject,
+                "html_body": html_body
             }
 
             response = requests.post(
-                "https://api.sendgrid.com/v3/mail/send",
-                headers=headers,
+                script_url,
                 json=payload,
-                timeout=10
+                timeout=15
             )
 
-            if response.status_code in [200, 201, 202]:
-                logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient} via=sendgrid")
-                return True
+            if response.status_code == 200:
+                res_data = response.json()
+                if res_data.get("status") == "success":
+                    logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient} via=google_apps_script")
+                    return True
+                else:
+                    logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={res_data.get('message')}")
+                    return False
             else:
-                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={response.text}")
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=HTTP_{response.status_code}")
                 return False
         except Exception as e:
             logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={str(e)}")
