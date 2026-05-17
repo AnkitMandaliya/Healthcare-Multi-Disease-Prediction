@@ -8,8 +8,6 @@ import re
 import pyotp
 import bcrypt
 import logging
-from flask_mail import Message
-from twilio.rest import Client
 from werkzeug.utils import secure_filename
 import cloudinary
 import cloudinary.uploader

@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_BASE } from '../services/api';
+import { 
+  setupRecaptcha, 
+  sendFirebaseOTP, 
+  verifyFirebaseOTP, 
+  cleanupFirebaseAuth,
+  signOutFirebase 
+} from '../services/firebase';
 import { 
   Activity, 
   Mail, 
@@ -15,7 +22,8 @@ import {
   CheckCircle2,
   Phone,
   MessageSquare,
-  RefreshCw
+  RefreshCw,
+  Smartphone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -24,14 +32,17 @@ import CustomSelect from '../components/ui/CustomSelect';
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [loginStep, setLoginStep] = useState(1); // 1: Credentials, 2: OTP
+  const [loginStep, setLoginStep] = useState(1); // 1: Credentials, 2: Firebase Phone OTP
   const [loginUid, setLoginUid] = useState(null);
+  const [loginUserPhone, setLoginUserPhone] = useState(null); // Phone from backend for Firebase 2FA
   const [forgotPwdStep, setForgotPwdStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'clinician', otp: '', phone: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [firebaseOtpSent, setFirebaseOtpSent] = useState(false);
+  const recaptchaInitialized = useRef(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -79,6 +90,90 @@ const Auth = () => {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  // Cleanup Firebase auth on unmount
+  useEffect(() => {
+    return () => {
+      cleanupFirebaseAuth();
+      recaptchaInitialized.current = false;
+    };
+  }, []);
+
+  const handleToggleAuthMode = () => {
+    setError('');
+    setIsForgotPassword(false);
+    setLoginStep(1);
+    setForgotPwdStep(1);
+    setFirebaseOtpSent(false);
+    setLoginUserPhone(null);
+    cleanupFirebaseAuth();
+    recaptchaInitialized.current = false;
+
+    if (isLogin) {
+      // Switching from Login to Register
+      const identification = formData.email?.trim() || '';
+      const cleanId = identification.replace(/\s/g, '');
+      if (/^\d+$/.test(cleanId)) {
+        // It's a phone number, move to formData.phone and clear email
+        setFormData(prev => ({
+          ...prev,
+          email: '',
+          phone: cleanId,
+          password: '',
+          confirmPassword: '',
+          otp: ''
+        }));
+      } else {
+        // Keep it as email, clear phone
+        setFormData(prev => ({
+          ...prev,
+          email: identification,
+          phone: '',
+          password: '',
+          confirmPassword: '',
+          otp: ''
+        }));
+      }
+      setIsLogin(false);
+    } else {
+      // Switching from Register to Login
+      const emailVal = formData.email?.trim() || '';
+      const phoneVal = formData.phone?.replace(/\s/g, '') || '';
+      const newEmailVal = emailVal || phoneVal;
+      setFormData(prev => ({
+        ...prev,
+        email: newEmailVal,
+        phone: '',
+        password: '',
+        confirmPassword: '',
+        otp: ''
+      }));
+      setIsLogin(true);
+    }
+  };
+
+  const handleAbortRecovery = () => {
+    setError('');
+    setIsForgotPassword(false);
+    setIsLogin(true);
+    setLoginStep(1);
+    setForgotPwdStep(1);
+    setFirebaseOtpSent(false);
+    setLoginUserPhone(null);
+    cleanupFirebaseAuth();
+    recaptchaInitialized.current = false;
+    
+    // Map email/phone back to the email field for Login
+    const identification = formData.phone?.replace(/\s/g, '') || formData.email || '';
+    setFormData(prev => ({
+      ...prev,
+      email: identification,
+      phone: '',
+      password: '',
+      confirmPassword: '',
+      otp: ''
+    }));
+  };
+
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
     if (isForgotPassword) {
@@ -104,8 +199,9 @@ const Auth = () => {
     setLoading(true);
     
     // Mutual Exclusivity: Only one at a time
-    const payloadPhone = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
-    const payload = formData.email ? { email: formData.email } : { phone: payloadPhone };
+    const isPhone = !!formData.phone;
+    const payloadPhone = isPhone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
+    const payload = formData.email ? { email: formData.email } : { phone: payloadPhone, check_only: true };
     if (!formData.email && !formData.phone) {
        setError('Identification identifier required (Email or Phone)');
        setLoading(false);
@@ -128,9 +224,20 @@ const Auth = () => {
       }
       if (!res.ok) throw new Error(data.error || data.details || 'Identity protocol failed');
       
+      if (isPhone) {
+        // Send OTP via Firebase Phone Auth
+        try {
+          await sendFirebasePhoneOTP(payloadPhone);
+          setError(isResend ? 'New Firebase OTP code dispatched.' : 'Firebase OTP dispatched to your verified mobile.');
+        } catch (firebaseErr) {
+          throw new Error(`Firebase OTP dispatch failed: ${firebaseErr.message}`);
+        }
+      } else {
+        setError(isResend ? 'New protocol token dispatched.' : 'Protocol instructions dispatched to targeted terminal.');
+      }
+      
       if (!isResend) setForgotPwdStep(2);
       setResendTimer(60); // Start 60s countdown
-      setError(isResend ? 'New protocol token dispatched.' : 'Protocol instructions dispatched to targeted terminal.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -142,19 +249,41 @@ const Auth = () => {
     setError('');
     setLoading(true);
     try {
-      const payloadPhone = formData.phone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
-      const res = await fetch(`${API_BASE}/api/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email || payloadPhone, otp: formData.otp }) // Backend handles combined lookup
-      });
-      let data;
-      try {
-         data = await res.json();
-      } catch (err) {
-         throw new Error("Server communication failed. Please ensure the backend is running and connected.");
+      const isPhone = !!formData.phone;
+      const payloadPhone = isPhone ? '+91' + formData.phone.replace(/\D/g, '') : undefined;
+      
+      if (isPhone) {
+        // Firebase verification
+        const firebaseResult = await verifyFirebaseOTP(formData.otp);
+        if (!firebaseResult.success) {
+          throw new Error(firebaseResult.error || 'Firebase verification failed');
+        }
+
+        // Notify backend of successful verification
+        const res = await fetch(`${API_BASE}/api/verify-otp-firebase`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            phone: payloadPhone, 
+            firebase_id_token: firebaseResult.idToken 
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Firebase verification sync failed');
+
+        // Cleanup Firebase session
+        await signOutFirebase();
+        cleanupFirebaseAuth();
+      } else {
+        // Legacy OTP verification path (backend-generated OTP)
+        const res = await fetch(`${API_BASE}/api/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, otp: formData.otp })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Verification failed');
       }
-      if (!res.ok) throw new Error(data.error || 'Verification fail');
       
       setForgotPwdStep(3);
       setError('Identity verified. Provide new secure passkey.');
@@ -183,6 +312,35 @@ const Auth = () => {
     
     setIsForgotPassword(true);
     setForgotPwdStep(1);
+  };
+
+  // Initialize reCAPTCHA for Firebase Phone Auth
+  const initRecaptcha = async () => {
+    if (!recaptchaInitialized.current) {
+      try {
+        await setupRecaptcha('firebase-recaptcha-container');
+        recaptchaInitialized.current = true;
+      } catch (err) {
+        console.error('[Firebase] reCAPTCHA init error:', err);
+        throw err;
+      }
+    }
+  };
+
+  // Send OTP via Firebase Phone Auth
+  const sendFirebasePhoneOTP = async (phoneNumber) => {
+    try {
+      initRecaptcha();
+      await sendFirebaseOTP(phoneNumber);
+      setFirebaseOtpSent(true);
+      setResendTimer(60);
+      return true;
+    } catch (err) {
+      // Reset reCAPTCHA on failure so user can retry
+      cleanupFirebaseAuth();
+      recaptchaInitialized.current = false;
+      throw err;
+    }
   };
 
   const handleAuth = async () => {
@@ -230,7 +388,24 @@ const Auth = () => {
        if (!res.ok) throw new Error(data?.error || data?.details || 'Authentication failed');
 
        if (isLogin) {
-          if (data.otp_required) {
+          if (data.otp_required && data.phone_2fa) {
+            // Firebase Phone 2FA: Backend has validated credentials and returned phone for 2FA
+            setLoginStep(2);
+            setLoginUid(data.uid);
+            setLoginUserPhone(data.phone_2fa); // E.164 phone from backend
+            
+            // Send OTP via Firebase Phone Auth
+            try {
+              await sendFirebasePhoneOTP(data.phone_2fa);
+              setError(`Security node check: Firebase OTP dispatched to ***${data.phone_2fa.slice(-4)}`);
+            } catch (firebaseErr) {
+              setError(`Firebase OTP dispatch failed: ${firebaseErr.message}`);
+              setLoginStep(1);
+              setLoginUid(null);
+              setLoginUserPhone(null);
+            }
+          } else if (data.otp_required) {
+            // Legacy OTP flow (email/SMS fallback from backend)
             setLoginStep(2);
             setLoginUid(data.uid);
             setResendTimer(60);
@@ -255,17 +430,48 @@ const Auth = () => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/login-verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: loginUid, otp: formData.otp })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Verification failed');
-      
-      login(data.user, data.access_token);
-      if (data.user.role === 'admin') navigate('/admin');
-      else navigate('/dashboard');
+      if (firebaseOtpSent) {
+        // Firebase Phone Auth verification path
+        const firebaseResult = await verifyFirebaseOTP(formData.otp);
+        
+        if (!firebaseResult.success) {
+          throw new Error('Firebase verification failed');
+        }
+
+        // Send Firebase ID token to backend for final auth
+        const res = await fetch(`${API_BASE}/api/login-verify-firebase`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            uid: loginUid, 
+            firebase_id_token: firebaseResult.idToken,
+            phone: firebaseResult.phoneNumber 
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Firebase verification failed');
+        
+        // Cleanup Firebase session (we use our own JWT)
+        await signOutFirebase();
+        cleanupFirebaseAuth();
+        
+        login(data.user, data.access_token);
+        if (data.user.role === 'admin') navigate('/admin');
+        else navigate('/dashboard');
+      } else {
+        // Legacy OTP verification path (backend-generated OTP)
+        const res = await fetch(`${API_BASE}/api/login-verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: loginUid, otp: formData.otp })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Verification failed');
+        
+        login(data.user, data.access_token);
+        if (data.user.role === 'admin') navigate('/admin');
+        else navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -497,10 +703,20 @@ const Auth = () => {
 
                     {isLogin && loginStep === 2 && (
                        <div className="space-y-6">
-                          <div className="p-5 rounded-3xl bg-primary/5 border border-primary/10 text-center space-y-2">
-                             <MessageSquare className="mx-auto text-primary" size={32} />
-                             <p className="text-[10px] font-black uppercase text-primary tracking-widest">Authentication Factor</p>
-                             <p className="text-[9px] font-bold text-slate-400">Security node verification token required for access.</p>
+                          <div className={`p-5 rounded-3xl ${firebaseOtpSent ? 'bg-emerald-500/5 border border-emerald-500/10' : 'bg-primary/5 border border-primary/10'} text-center space-y-2`}>
+                             {firebaseOtpSent ? (
+                               <>
+                                 <Smartphone className="mx-auto text-emerald-500" size={32} />
+                                 <p className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">Firebase Phone 2FA</p>
+                                 <p className="text-[9px] font-bold text-slate-400">OTP sent to your mobile via Firebase. Enter the 6-digit code below.</p>
+                               </>
+                             ) : (
+                               <>
+                                 <MessageSquare className="mx-auto text-primary" size={32} />
+                                 <p className="text-[10px] font-black uppercase text-primary tracking-widest">Authentication Factor</p>
+                                 <p className="text-[9px] font-bold text-slate-400">Security node verification token required for access.</p>
+                               </>
+                             )}
                           </div>
                           <div>
                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 text-center block">6-Digit Code (OTP)</label>
@@ -522,7 +738,24 @@ const Auth = () => {
                              <button 
                                 type="button"
                                 disabled={loading || resendTimer > 0}
-                                onClick={() => handleAuth()}
+                                onClick={async () => {
+                                  if (firebaseOtpSent && loginUserPhone) {
+                                    // Resend via Firebase
+                                    setLoading(true);
+                                    try {
+                                      cleanupFirebaseAuth();
+                                      recaptchaInitialized.current = false;
+                                      await sendFirebasePhoneOTP(loginUserPhone);
+                                      setError('New Firebase OTP dispatched to your mobile.');
+                                    } catch (err) {
+                                      setError(`Resend failed: ${err.message}`);
+                                    } finally {
+                                      setLoading(false);
+                                    }
+                                  } else {
+                                    handleAuth();
+                                  }
+                                }}
                                 className={`inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-colors ${resendTimer > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-primary hover:text-primary/70'}`}
                              >
                                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -711,7 +944,20 @@ const Auth = () => {
             className="mt-10 flex flex-col gap-4 text-center"
           >
              <button 
-                onClick={() => { setIsLogin(!isLogin); setIsForgotPassword(false); setLoginStep(1); setForgotPwdStep(1); setError(''); }}
+                onClick={() => { 
+                  if (loginStep === 2) {
+                    setLoginStep(1);
+                    setError('');
+                    setFirebaseOtpSent(false);
+                    setLoginUserPhone(null);
+                    cleanupFirebaseAuth();
+                    recaptchaInitialized.current = false;
+                  } else if (isForgotPassword) {
+                    handleAbortRecovery();
+                  } else {
+                    handleToggleAuthMode();
+                  }
+                }}
                 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-primary transition-colors"
              >
                 {isForgotPassword ? 'Abort Recovery Protocol' : (isLogin ? (loginStep === 2 ? 'Abort Verification' : 'Request New Clinical Identity') : 'Return to Login Context')}
@@ -727,6 +973,12 @@ const Auth = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Firebase reCAPTCHA Container (Visible Modal) */}
+      <div 
+        id="firebase-recaptcha-container" 
+        className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[999] bg-white/10 backdrop-blur-md p-4 rounded-xl shadow-2xl empty:hidden"
+      ></div>
 
       {/* Decorative Blur Accents */}
       <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>

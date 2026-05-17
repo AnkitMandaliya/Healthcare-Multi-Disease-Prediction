@@ -31,6 +31,9 @@ models/reports/
 !vite.config.js
 !tailwind.config.js
 
+# Scratch & Temp
+scratch/
+
 # Large Assets & Logs
 *.zip
 *.ppt

@@ -1,6 +1,5 @@
 from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from flask_mail import Message
 from backend.extensions import mongo, bcrypt, mail
 import json
 import pyotp
@@ -8,7 +7,7 @@ import os
 import re
 import logging
 import traceback
-from twilio.rest import Client
+import requests
 from datetime import datetime, timedelta, timezone
 import threading
 
@@ -42,89 +41,161 @@ def log_auth_event(event, level="info", **fields):
     message = f"[AUTH] event={event} context={client_context()} fields={safe_fields}"
     getattr(logger, level, logger.info)(message)
 
-def send_email_async(message, purpose, recipient):
-    app = current_app._get_current_object()
+def send_email_async(subject, recipient, html_body, purpose):
     masked_recipient = mask_identifier(recipient)
     log_auth_event("email_queued", purpose=purpose, recipient=masked_recipient)
 
     def worker():
-        with app.app_context():
-            try:
-                mail.send(message)
-                logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient}")
-            except Exception as e:
-                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={str(e)}")
+        try:
+            api_key = os.environ.get("RESEND_API_KEY")
+            if not api_key:
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error=Missing RESEND_API_KEY environment variable")
+                return
+
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "from": "HealthAI <support@healthai.com>",
+                "to": [recipient],
+                "subject": subject,
+                "html": html_body
+            }
+            
+            response = requests.post(
+                "https://api.resend.com/emails",
+                headers=headers,
+                json=payload,
+                timeout=10
+            )
+            
+            if response.status_code in [200, 201, 202]:
+                logger.info(f"[AUTH] event=email_sent purpose={purpose} recipient={masked_recipient} resend_id={response.json().get('id')}")
+            else:
+                logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={response.text}")
+        except Exception as e:
+            logger.error(f"[AUTH] event=email_failed purpose={purpose} recipient={masked_recipient} error={str(e)}")
 
     threading.Thread(target=worker, daemon=True).start()
 
-def otp_email_message(subject, recipient, otp):
-    plain_body = (
-        f"Your HealthAI verification code is {otp}.\n\n"
-        "This code expires in 10 minutes.\n\n"
-        "If you did not request this code, you can ignore this email.\n\n"
-        "HealthAI"
-    )
-    html_body = f"""
+def otp_email_message(otp):
+    return f"""
 <!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#f6f8fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f8fb;padding:28px 12px;">
+  <body style="margin:0;padding:0;background-color:#0b0f19;font-family:'Outfit','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#f1f5f9;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0f19;padding:40px 10px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:#ffffff;border:1px solid #e5eaf2;border-radius:8px;">
+          <!-- Main Card -->
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:540px;background:rgba(17, 24, 39, 0.95);border:1px solid rgba(255, 255, 255, 0.08);border-radius:24px;box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);overflow:hidden;">
+            <!-- Header Banner with Gradient -->
             <tr>
-              <td style="padding:28px 28px 12px;">
-                <p style="margin:0 0 8px;font-size:14px;color:#64748b;">HealthAI account verification</p>
-                <h1 style="margin:0;font-size:22px;line-height:1.35;color:#0f172a;">Your verification code</h1>
+              <td style="background: linear-gradient(135deg, #1e40af 0%, #0369a1 50%, #0e7490 100%); padding: 35px 40px; text-align: left;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="vertical-align: middle; width: 48px;">
+                      <!-- Styled AI Pulse icon container -->
+                      <div style="background: rgba(255, 255, 255, 0.2); border-radius: 12px; width: 42px; height: 42px; text-align: center; line-height: 42px;">
+                        <span style="font-size: 22px; color: #ffffff; line-height: 42px;">⚡</span>
+                      </div>
+                    </td>
+                    <td style="vertical-align: middle; padding-left: 15px;">
+                      <span style="font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #38bdf8; text-transform: uppercase; display: block; margin-bottom: 2px;">SECURE PROTOCOL</span>
+                      <h1 style="margin:0; font-size:24px; font-weight:900; color:#ffffff; letter-spacing:-0.5px; text-transform:uppercase;">HealthAI Node</h1>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
+            <!-- Content Area -->
             <tr>
-              <td style="padding:12px 28px 4px;">
-                <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#334155;">Use this code to continue signing in to your HealthAI account.</p>
-                <div style="font-size:32px;line-height:1;letter-spacing:6px;font-weight:700;color:#0f172a;background:#f1f5f9;border:1px solid #dbe3ee;border-radius:8px;padding:18px;text-align:center;">{otp}</div>
+              <td style="padding:40px 40px 30px;">
+                <p style="margin:0 0 10px; font-size:12px; font-weight: 700; color:#38bdf8; text-transform: uppercase; letter-spacing: 1.5px;">Verification Challenge</p>
+                <h2 style="margin:0 0 20px; font-size:22px; font-weight:800; color:#ffffff; letter-spacing: -0.5px;">Authorize login sequence</h2>
+                <p style="margin:0 0 30px; font-size:15px; line-height:1.6; color:#94a3b8; font-weight:500;">
+                  A new connection request is attempting to bind to your HealthAI clinical node. Use the high-fidelity security token below to authorize access:
+                </p>
+                
+                <!-- Styled OTP container -->
+                <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 30px 20px; text-align: center; margin-bottom: 30px;">
+                  <span style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 12px;">ONE-TIME SECURITY KEY</span>
+                  <div style="font-size:42px; line-height:1; letter-spacing:8px; font-weight:900; color:#38bdf8; text-shadow: 0 0 20px rgba(56, 189, 248, 0.2); font-family: 'Courier New', Courier, monospace;">{otp}</div>
+                </div>
+
+                <div style="background: rgba(234, 179, 8, 0.05); border-left: 3px solid #eab308; border-radius: 4px 12px 12px 4px; padding: 15px 20px; margin-bottom: 30px;">
+                  <p style="margin:0; font-size:13px; line-height:1.5; color:#fef08a; font-weight: 600;">
+                    ⚠️ This authentication code will expire in <strong>10 minutes</strong>.
+                  </p>
+                </div>
+
+                <p style="margin:0; font-size:13px; line-height:1.6; color:#64748b; font-weight:500; text-align: center;">
+                  If you did not initiate this authentication request, please immediately re-secure your passkey.
+                </p>
               </td>
             </tr>
+            <!-- Footer -->
             <tr>
-              <td style="padding:18px 28px 28px;">
-                <p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#475569;">This code expires in 10 minutes.</p>
-                <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">If you did not request this code, you can safely ignore this email.</p>
+              <td style="padding:20px 40px; background: rgba(0, 0, 0, 0.2); border-top: 1px solid rgba(255, 255, 255, 0.04); text-align: center;">
+                <p style="margin:0 0 6px; font-size:11px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:1px;">
+                  HealthAI Diagnostic Network
+                </p>
+                <p style="margin:0; font-size:10px; color:#334155; font-weight:500;">
+                  This is an automated transmission. Replies are unrouted.
+                </p>
               </td>
             </tr>
           </table>
-          <p style="max-width:520px;margin:14px auto 0;font-size:12px;line-height:1.5;color:#94a3b8;">HealthAI sends verification codes only when requested from the app.</p>
+          <p style="max-width:540px; margin:20px auto 0; font-size:11px; color:#475569; line-height:1.5; text-align:center; font-weight: 500; padding: 0 20px;">
+            Securely encrypted using AES-256 standards. Node location logs and diagnostic traces are logged on each challenge.
+          </p>
         </td>
       </tr>
     </table>
   </body>
 </html>
 """
-    return Message(
-        subject=subject,
-        recipients=[recipient],
-        body=plain_body,
-        html=html_body,
-        extra_headers={
-            "X-Auto-Response-Suppress": "All",
-            "X-Entity-Ref-ID": f"healthai-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-        }
-    )
+
 
 def send_sms_otp(phone, otp, purpose):
-    account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-    auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-    twilio_phone = os.environ.get('TWILIO_PHONE_NUMBER')
-    if not account_sid or not auth_token or not twilio_phone:
-        return False, "Missing Twilio environment config"
+    api_key = os.environ.get('FAST2SMS_API_KEY')
+    if not api_key:
+        return False, "Missing Fast2SMS environment config"
 
     try:
-        client = Client(account_sid, auth_token)
-        client.messages.create(
-            body=f"Your HealthAI verification code is {otp}. It expires in 10 minutes.",
-            from_=twilio_phone,
-            to=phone
-        )
-        log_auth_event("otp_sms_sent", recipient=mask_identifier(phone), purpose=purpose)
-        return True, None
+        # Fast2SMS OTP Route API
+        # Documentation: https://www.fast2sms.com/help/sms-api
+        url = "https://www.fast2sms.com/dev/bulkV2"
+        
+        # Clean phone number: Remove all non-digits and strip +91 if present
+        clean_phone = re.sub(r"\D", "", phone)
+        if clean_phone.startswith("91") and len(clean_phone) == 12:
+            clean_phone = clean_phone[2:] # Remove 91 prefix for 10-digit Indian numbers
+        
+        payload = {
+            "route": "q",
+            "message": f"Your HealthAI verification code is {otp}. It expires in 10 minutes.",
+            "language": "english",
+            "flash": 0,
+            "numbers": clean_phone
+        }
+        
+        headers = {
+            "authorization": api_key,
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        
+        response = requests.post(url, data=payload, headers=headers)
+        res_data = response.json()
+        
+        if res_data.get("return"):
+            log_auth_event("otp_sms_sent", recipient=mask_identifier(phone), purpose=purpose)
+            return True, None
+        else:
+            error_msg = res_data.get("message", "Fast2SMS unknown failure")
+            log_auth_event("otp_sms_failed", "warning", recipient=mask_identifier(phone), purpose=purpose, error=error_msg)
+            return False, error_msg
+            
     except Exception as e:
         error = str(e)
         log_auth_event("otp_sms_failed", "warning", recipient=mask_identifier(phone), purpose=purpose, error=error)
@@ -148,14 +219,14 @@ def register():
         if len(password) < 6:
             return jsonify({"error": "Encryption passkey must be at least 6 characters"}), 400
 
-        # Ensure unique identifiers in registry
-        query_parts = []
-        if email: query_parts.append({"email": email})
-        if phone: query_parts.append({"phone": phone})
+        # Ensure unique email/phone combination in registry
+        query = {}
+        if email: query["email"] = email
+        if phone: query["phone"] = phone
         
-        if mongo.db.users.find_one({"$or": query_parts}):
+        if query and mongo.db.users.find_one(query):
             log_auth_event("register_duplicate_identifier", "warning", identifier=mask_identifier(email or phone), role=role)
-            return jsonify({"error": "Clinical identifier (Email or Phone) already active in registry"}), 400
+            return jsonify({"error": "This exact Email and Phone combination is already active in the registry"}), 400
             
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
         mongo.db.users.insert_one({
@@ -223,8 +294,19 @@ def login():
             log_auth_event("login_failed_bad_password", "warning", identifier=mask_identifier(identifier))
             return jsonify({"error": "Invalid credentials"}), 401
 
-        # Production-Grade OTP Verification Flow
-        # Step 2: Trigger OTP protocol for Login (2FA) - Respect the identifier used for delivery
+        # Firebase Phone 2FA: If user has a registered phone, use Firebase Phone Auth
+        user_phone = user.get("phone", "").strip()
+        if user_phone:
+            log_auth_event("login_firebase_2fa_triggered", identifier=mask_identifier(identifier), phone=mask_identifier(user_phone))
+            return jsonify({
+                "otp_required": True,
+                "phone_2fa": user_phone,  # E.164 phone for Firebase Phone Auth
+                "uid": str(user["_id"]),
+                "sent_to": f"Firebase Phone: ***{user_phone[-4:]}",
+                "message": "Firebase Phone 2FA: OTP will be sent to your mobile"
+            }), 200
+
+        # Fallback: Legacy OTP dispatch (email-based) for users without phone
         success, msg, otp_context = dispatch_otp(user, preferred_channel=identifier)
         if not success:
             log_auth_event("login_otp_dispatch_failed", "warning", identifier=mask_identifier(identifier), error=msg)
@@ -306,6 +388,134 @@ def login_verify():
         logger.exception(f"[AUTH] event=login_verify_error error={str(e)}")
         return jsonify({"error": "Verification protocol failure", "details": str(e)}), 500
 
+@auth_bp.route("/api/login-verify-firebase", methods=["POST"])
+def login_verify_firebase():
+    """Verify Firebase Phone Auth ID token for 2FA login.
+    
+    The frontend sends the Firebase ID token obtained after successful 
+    phone OTP verification. We verify it server-side using Google's 
+    public keys, then issue our own JWT.
+    """
+    try:
+        data = request.json
+        uid = data.get("uid")
+        firebase_id_token = data.get("firebase_id_token")
+        phone = data.get("phone")
+        log_auth_event("login_verify_firebase_attempt", uid=uid)
+        
+        if not uid or not firebase_id_token:
+            return jsonify({"error": "Firebase verification parameters missing"}), 400
+        
+        # Verify the Firebase ID token using Google's public keys
+        firebase_verified = verify_firebase_id_token(firebase_id_token)
+        if not firebase_verified:
+            log_auth_event("login_verify_firebase_invalid_token", "warning", uid=uid)
+            return jsonify({"error": "Firebase token verification failed"}), 401
+        
+        # Ensure the phone number in the token matches the user's phone
+        from bson.objectid import ObjectId
+        user = mongo.db.users.find_one({"_id": ObjectId(uid)})
+        if not user:
+            log_auth_event("login_verify_firebase_user_missing", "warning", uid=uid)
+            return jsonify({"error": "User session not found"}), 404
+        
+        # Verify phone number matches (Firebase token phone vs user's registered phone)
+        token_phone = firebase_verified.get("phone_number", "")
+        user_phone = user.get("phone", "")
+        
+        # Normalize phones for comparison (strip +, spaces, etc.)
+        normalize = lambda p: re.sub(r"\D", "", p) if p else ""
+        if normalize(token_phone) != normalize(user_phone):
+            log_auth_event("login_verify_firebase_phone_mismatch", "warning", uid=uid, 
+                          token_phone=mask_identifier(token_phone), user_phone=mask_identifier(user_phone))
+            return jsonify({"error": "Phone number mismatch. Security violation detected."}), 401
+        
+        # Issue JWT (same as legacy flow)
+        role_data = mongo.db.roles.find_one({"name": user["role"]})
+        permissions = role_data.get("permissions", []) if role_data else []
+        
+        access_token = create_access_token(
+            identity=str(user["_id"]),
+            additional_claims={
+                "role": user["role"],
+                "name": user["name"],
+                "permissions": permissions
+            }
+        )
+        
+        log_auth_event("login_verify_firebase_success", uid=uid, role=user.get("role"))
+        return jsonify({
+            "access_token": access_token,
+            "user": {
+                "email": user["email"],
+                "name": user["name"],
+                "role": user["role"],
+                "permissions": permissions,
+                "avatar": user.get("avatar", f"https://i.pravatar.cc/150?u={user['email'].lower() if user['email'] else user['name']}")
+            }
+        }), 200
+    except Exception as e:
+        logger.exception(f"[AUTH] event=login_verify_firebase_error error={str(e)}")
+        return jsonify({"error": "Firebase verification protocol failure", "details": str(e)}), 500
+
+
+def verify_firebase_id_token(id_token):
+    """Verify a Firebase ID token using Google's public keys.
+    
+    This verifies the JWT signature, expiry, audience, and issuer
+    without requiring the Firebase Admin SDK.
+    """
+    import jwt as pyjwt
+    from cryptography.x509 import load_pem_x509_certificate
+    from cryptography.hazmat.backends import default_backend
+    
+    FIREBASE_PROJECT_ID = "healthai-80476"
+    GOOGLE_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+    
+    try:
+        # Fetch Google's public keys
+        certs_response = requests.get(GOOGLE_CERTS_URL, timeout=10)
+        certs = certs_response.json()
+        
+        # Decode the token header to find the key ID
+        unverified_header = pyjwt.get_unverified_header(id_token)
+        kid = unverified_header.get("kid")
+        
+        if kid not in certs:
+            logger.warning(f"[Firebase] Unknown key ID: {kid}")
+            return None
+        
+        # Get the public key from the certificate
+        cert_pem = certs[kid].encode("utf-8")
+        cert = load_pem_x509_certificate(cert_pem, default_backend())
+        public_key = cert.public_key()
+        
+        # Verify and decode the token
+        decoded = pyjwt.decode(
+            id_token,
+            public_key,
+            algorithms=["RS256"],
+            audience=FIREBASE_PROJECT_ID,
+            issuer=f"https://securetoken.google.com/{FIREBASE_PROJECT_ID}"
+        )
+        
+        # Additional checks
+        if not decoded.get("sub"):
+            logger.warning("[Firebase] Token missing 'sub' claim")
+            return None
+            
+        return decoded
+        
+    except pyjwt.ExpiredSignatureError:
+        logger.warning("[Firebase] Token expired")
+        return None
+    except pyjwt.InvalidTokenError as e:
+        logger.warning(f"[Firebase] Invalid token: {str(e)}")
+        return None
+    except Exception as e:
+        logger.exception(f"[Firebase] Token verification error: {str(e)}")
+        return None
+
 @auth_bp.route("/api/available-roles", methods=["GET"])
 def available_roles():
     from backend.extensions import mongo
@@ -355,22 +565,18 @@ def dispatch_otp(user, preferred_channel=None):
             sms_sent, sms_error = send_sms_otp(user["phone"], otp, "login_otp")
             if sms_sent:
                 return True, f"SMS node: ***{user['phone'][-4:]}", otp
-            if user.get("email"):
-                msg = otp_email_message("Your HealthAI verification code", user["email"], otp)
-                send_email_async(msg, "login_otp_sms_fallback", user["email"])
-                return True, f"SMS unavailable, email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
-            return False, f"SMS delivery failed: {sms_error}", None
+            return False, f"SMS node failure: {sms_error}", None
 
-        # Priority 2: Preferred Email Channel (SMTP)
+        # Priority 2: Preferred Email Channel
         if is_email_used and user.get("email"):
-            msg = otp_email_message("Your HealthAI verification code", user["email"], otp)
-            send_email_async(msg, "login_otp", user["email"])
+            html_body = otp_email_message(otp)
+            send_email_async("Your HealthAI verification code", user["email"], html_body, "login_otp")
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
 
         # Final Fallback: Send to whatever primary communication vector the node has
         if user.get("email"):
-            msg = otp_email_message("Your HealthAI verification code", user["email"], otp)
-            send_email_async(msg, "login_otp_fallback", user["email"])
+            html_body = otp_email_message(otp)
+            send_email_async("Your HealthAI verification code", user["email"], html_body, "login_otp_fallback")
             return True, f"Email node: {user['email'][:3]}***@{user['email'].split('@')[-1]}", otp
         elif user.get("phone"):
             # SMS logic again (Fallback)
@@ -425,6 +631,16 @@ def forgot_password():
             log_auth_event("forgot_password_user_missing", "warning", identifier=mask_identifier(email or phone))
             return jsonify({"error": "No account found with this identifier"}), 404
             
+        # Support check_only for client-side Firebase Phone Auth verification
+        check_only = data.get("check_only", False)
+        if check_only:
+            log_auth_event("forgot_password_check_only_success", identifier=mask_identifier(email or phone))
+            return jsonify({
+                "status": "success",
+                "message": "Clinical identity validated. Proceeding to Firebase token dispatch.",
+                "destination": mask_identifier(email or phone)
+            }), 200
+            
         canonical_email = user.get("email", "").lower()
         now = datetime.now(timezone.utc)
         
@@ -465,8 +681,8 @@ def forgot_password():
         # Email Channel
         if email:
             try:
-                msg = otp_email_message("Reset your HealthAI password", email, otp)
-                send_email_async(msg, "forgot_password", email)
+                html_body = otp_email_message(otp)
+                send_email_async("Reset your HealthAI password", email, html_body, "forgot_password")
                 dispatch_success = True
             except Exception as e:
                 dispatch_error = str(e)
@@ -477,14 +693,9 @@ def forgot_password():
             sms_sent, sms_error = send_sms_otp(phone, otp, "forgot_password")
             if sms_sent:
                 dispatch_success = True
-            elif canonical_email:
-                dispatch_error = sms_error
-                msg = otp_email_message("Reset your HealthAI password", canonical_email, otp)
-                send_email_async(msg, "forgot_password_sms_fallback", canonical_email)
-                dispatch_success = True
-                log_auth_event("forgot_password_sms_fallback_email", identifier=mask_identifier(phone), email=mask_identifier(canonical_email), sms_error=sms_error)
             else:
-                dispatch_error = sms_error
+                dispatch_error = f"Mobile dispatch node failure: {sms_error}"
+                log_auth_event("forgot_password_sms_failed", "warning", identifier=mask_identifier(phone), error=sms_error)
                 
         if not dispatch_success:
             log_auth_event("forgot_password_dispatch_failed", "warning", identifier=mask_identifier(email or phone), error=dispatch_error)
@@ -494,7 +705,7 @@ def forgot_password():
         return jsonify({
             "status": "success",
             "message": "OTP sent successfully to your identifier",
-            "email": canonical_email
+            "destination": mask_identifier(email or phone)
         }), 200
     except Exception as e:
         logger.exception(f"[AUTH] event=forgot_password_error error={str(e)}")
@@ -550,6 +761,63 @@ def verify_otp():
         return jsonify({"message": "Node identity verified. Proceed to passkey re-initialization.", "status": "success"}), 200
     except Exception as e:
         logger.exception(f"[AUTH] event=reset_verify_error error={str(e)}")
+        return jsonify({"error": "Verification node failure", "details": str(e)}), 500
+
+@auth_bp.route("/api/verify-otp-firebase", methods=["POST"])
+def verify_otp_firebase():
+    try:
+        from backend.extensions import mongo
+        data = request.json
+        firebase_id_token = data.get("firebase_id_token")
+        phone = data.get("phone", "").replace(" ", "")
+        
+        log_auth_event("reset_verify_firebase_attempt", identifier=mask_identifier(phone))
+        
+        if not firebase_id_token or not phone:
+            return jsonify({"error": "Verification data missing"}), 400
+            
+        # Verify the Firebase ID token using Google's public keys
+        firebase_verified = verify_firebase_id_token(firebase_id_token)
+        if not firebase_verified:
+            log_auth_event("reset_verify_firebase_invalid_token", "warning", identifier=mask_identifier(phone))
+            return jsonify({"error": "Firebase token verification failed"}), 401
+            
+        # Ensure the phone number in the token matches the user's phone
+        token_phone = firebase_verified.get("phone_number", "")
+        
+        # Normalize phones for comparison
+        normalize = lambda p: re.sub(r"\D", "", p) if p else ""
+        if normalize(token_phone) != normalize(phone):
+            log_auth_event("reset_verify_firebase_phone_mismatch", "warning", 
+                           token_phone=mask_identifier(token_phone), phone=mask_identifier(phone))
+            return jsonify({"error": "Phone number mismatch. Security violation detected."}), 401
+            
+        # Find user
+        user = mongo.db.users.find_one({"phone": phone})
+        if not user:
+            log_auth_event("reset_verify_firebase_user_missing", "warning", identifier=mask_identifier(phone))
+            return jsonify({"error": "No clinical identifier matched"}), 404
+            
+        # Success! Create/Update verified OTP session
+        expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
+        mongo.db.otps.update_one(
+            {"uid": str(user["_id"])},
+            {"$set": {
+                "otp": "FIREBASE_BYPASS",
+                "otp_secret": "FIREBASE_BYPASS",
+                "expiry": expiry,
+                "last_requested": datetime.now(timezone.utc),
+                "attempt_count": 0,
+                "verified": True,
+                "verified_at": datetime.now(timezone.utc)
+            }},
+            upsert=True
+        )
+        
+        log_auth_event("reset_verify_firebase_success", identifier=mask_identifier(phone))
+        return jsonify({"message": "Node identity verified via Firebase. Proceed to passkey re-initialization.", "status": "success"}), 200
+    except Exception as e:
+        logger.exception(f"[AUTH] event=reset_verify_firebase_error error={str(e)}")
         return jsonify({"error": "Verification node failure", "details": str(e)}), 500
 
 @auth_bp.route("/api/reset-password", methods=["POST"])

@@ -84,8 +84,15 @@ def seed_db():
     # Ensure performance and security indexes
     try:
         # User security
-        mongo.db.users.create_index("email", unique=True, sparse=True)
-        mongo.db.users.create_index("phone", unique=True, sparse=True)
+        # Drop old single unique indexes if they exist to allow the new compound rule
+        try:
+            mongo.db.users.drop_index("email_1")
+            mongo.db.users.drop_index("phone_1")
+        except Exception:
+            pass # Indexes might not exist or already dropped
+
+        # Create compound unique index for the combination of email and phone
+        mongo.db.users.create_index([("email", 1), ("phone", 1)], unique=True, sparse=True)
         
         # Predictive records performance
         mongo.db.records.create_index([("email", 1), ("timestamp", -1)])
@@ -126,10 +133,8 @@ def health_check():
 
     env_vars = {
         "MONGO_URI": "Set" if os.getenv("MONGO_URI") else "Missing",
-        "MAIL_USERNAME": "Set" if os.getenv("MAIL_USERNAME") else "Missing",
-        "MAIL_PASSWORD": "Set" if os.getenv("MAIL_PASSWORD") else "Missing",
-        "JWT_SECRET": "Set" if os.getenv("JWT_SECRET") else "Missing",
-        "TWILIO_ACCOUNT_SID": "Set" if os.getenv("TWILIO_ACCOUNT_SID") else "Missing"
+        "RESEND_API_KEY": "Set" if os.getenv("RESEND_API_KEY") else "Missing",
+        "JWT_SECRET": "Set" if os.getenv("JWT_SECRET") else "Missing"
     }
 
 
